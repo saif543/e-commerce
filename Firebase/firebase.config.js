@@ -13,7 +13,7 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APPID,
 }
 
-// Initialize Firebase
+// Initialize Firebase.
 const app = initializeApp(firebaseConfig)
 
 export default app
