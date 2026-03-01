@@ -54,6 +54,16 @@ module.exports = function componentTaggerLoader(source) {
 
       if (hasAttr) continue;
 
+      // Skip React.Fragment / Fragment — they don't accept arbitrary props
+      const elName = el.name;
+      const isFragment =
+        (elName.type === 'JSXIdentifier' && elName.name === 'Fragment') ||
+        (elName.type === 'JSXMemberExpression' &&
+          elName.object && elName.object.name === 'React' &&
+          elName.property && elName.property.name === 'Fragment') ||
+        elName.type === 'JSXEmptyExpression'; // shorthand <>
+      if (isFragment) continue;
+
       const nameEnd = el.name.end;
       const attr = ` data-lov-id="${attrValue}"`;
       ms.appendLeft(nameEnd, attr);
