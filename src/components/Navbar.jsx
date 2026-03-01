@@ -3,22 +3,26 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Search, Heart, ShoppingCart, ChevronDown, ChevronRight, X } from "lucide-react";
 import { categories } from "@/data/categories";
 
 const navLinks = [
   { label: "BRANDS", href: "/brands" },
   { label: "TRENDING", href: "/trending" },
-  { label: "SUPPORT", href: "#" },
-  { label: "ABOUT US", href: "#" },
+  { label: "SUPPORT", href: "/support" },
+  { label: "ABOUT US", href: "/about" },
 ];
 
 export default function Navbar() {
+  const pathname = usePathname();
   const [showCategories, setShowCategories] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchRef = useRef(null);
+
+  const isCategoryActive = pathname.startsWith("/category");
 
   useEffect(() => {
     if (searchOpen && searchRef.current) {
@@ -37,10 +41,10 @@ export default function Navbar() {
         {/* Logo */}
         <Link href="/">
           <motion.div whileHover={{ scale: 1.03 }} className="flex items-center gap-2.5 cursor-pointer">
-            <div className="w-8 h-8 bg-purple-dark rounded-full flex items-center justify-center">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${pathname === "/" ? "bg-purple-mid" : "bg-purple-dark"}`}>
               <span className="text-white font-bold text-xs">N</span>
             </div>
-            <span className="font-serif text-xl text-purple-dark tracking-tight">Nishat</span>
+            <span className={`font-serif text-xl tracking-tight transition-colors ${pathname === "/" ? "text-purple-mid" : "text-purple-dark"}`}>Nishat</span>
           </motion.div>
         </Link>
 
@@ -52,9 +56,14 @@ export default function Navbar() {
             onMouseEnter={() => setShowCategories(true)}
             onMouseLeave={() => { setShowCategories(false); setActiveCategory(null); }}
           >
-            <button className="flex items-center gap-1.5 text-sm font-semibold tracking-wider transition-colors hover:text-purple-mid text-text-primary">
+            <button className={`flex items-center gap-1.5 text-sm font-semibold tracking-wider transition-colors relative pb-0.5 ${
+              isCategoryActive ? "text-purple-mid" : "text-text-primary hover:text-purple-mid"
+            }`}>
               ALL CATEGORIES
               <ChevronDown size={14} className={`transition-transform duration-200 ${showCategories ? "rotate-180" : ""}`} />
+              {isCategoryActive && (
+                <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-purple-mid rounded-full" />
+              )}
             </button>
 
             <AnimatePresence>
@@ -125,21 +134,30 @@ export default function Navbar() {
           </li>
 
           {/* Other nav links */}
-          {navLinks.map((link, i) => (
-            <motion.li
-              key={link.label}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 + 0.3 }}
-            >
-              <Link
-                href={link.href}
-                className="text-sm font-semibold tracking-wider transition-colors hover:text-purple-mid text-text-primary"
+          {navLinks.map((link, i) => {
+            const isActive = link.href !== "#" && pathname === link.href;
+            return (
+              <motion.li
+                key={link.label}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 + 0.3 }}
+                className="relative"
               >
-                {link.label}
-              </Link>
-            </motion.li>
-          ))}
+                <Link
+                  href={link.href}
+                  className={`text-sm font-semibold tracking-wider transition-colors pb-0.5 ${
+                    isActive ? "text-purple-mid" : "text-text-primary hover:text-purple-mid"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+                {isActive && (
+                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-purple-mid rounded-full" />
+                )}
+              </motion.li>
+            );
+          })}
         </ul>
 
         {/* Right */}

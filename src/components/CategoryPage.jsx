@@ -197,7 +197,7 @@ export default function CategoryPage({ categoryName, parentName, parentSlug, sub
   const allBrands = [...new Set(products.map((p) => p.brand))];
   const connectivityOptions = ["Wireless", "Bluetooth", "USB-C", "Wi-Fi", "NFC", "3.5mm Jack"];
   const conditionOptions = ["Brand New", "Refurbished", "Open Box"];
-  const availabilityOptions = ["In Stock", "Pre-Order", "Upcoming", "Out of Stock"];
+  const availabilityOptions = ["In Stock", "Out of Stock"];
 
   const hasActiveFilters =
     selectedBrands.length > 0 ||
@@ -468,7 +468,7 @@ export default function CategoryPage({ categoryName, parentName, parentSlug, sub
               </button>
             </div>
           ) : gridView === "grid" ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5" style={{ overflow: "visible" }}>
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-7" style={{ overflow: "visible" }}>
               {sortedProducts.map((product, i) => (
                 <motion.div
                   key={product.id}
@@ -508,13 +508,7 @@ export default function CategoryPage({ categoryName, parentName, parentSlug, sub
                           <span className="text-[10px] sm:text-xs text-text-muted line-through">Tk {product.originalPrice.toFixed(2)}</span>
                         </div>
                       ) : (
-                        <span className={`inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 ${
-                          product.stock === "Out of Stock"
-                            ? "bg-red-100 text-red-600"
-                            : product.stock === "Pre-Order"
-                              ? "bg-blue-100 text-blue-600"
-                              : "bg-amber-100 text-amber-600"
-                        }`}>
+                        <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">
                           {product.stock}
                         </span>
                       )}
@@ -525,10 +519,6 @@ export default function CategoryPage({ categoryName, parentName, parentSlug, sub
                       {product.stock === "In Stock" ? (
                         <button className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
                           Add to Cart
-                        </button>
-                      ) : product.stock === "Pre-Order" ? (
-                        <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
-                          Pre-Order
                         </button>
                       ) : (
                         <button className="flex-1 bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>
@@ -590,13 +580,7 @@ export default function CategoryPage({ categoryName, parentName, parentSlug, sub
                             <span className="bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">-{product.drop}%</span>
                           </div>
                         ) : (
-                          <span className={`inline-block text-xs font-bold px-3 py-1.5 rounded-full ${
-                            product.stock === "Out of Stock"
-                              ? "bg-red-100 text-red-600"
-                              : product.stock === "Pre-Order"
-                                ? "bg-blue-100 text-blue-600"
-                                : "bg-amber-100 text-amber-600"
-                          }`}>
+                          <span className="inline-block text-xs font-bold px-3 py-1.5 rounded-full bg-red-100 text-red-600">
                             {product.stock}
                           </span>
                         )}

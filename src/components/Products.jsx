@@ -22,7 +22,7 @@ export default function Products() {
         </motion.div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-7">
           {products.map((product, i) => (
             <motion.div
               key={product.id}
@@ -70,13 +70,7 @@ export default function Products() {
                       </span>
                     </div>
                   ) : (
-                    <span className={`inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 ${
-                      product.stock === "Out of Stock"
-                        ? "bg-red-100 text-red-600"
-                        : product.stock === "Pre-Order"
-                          ? "bg-blue-100 text-blue-600"
-                          : "bg-amber-100 text-amber-600"
-                    }`}>
+                    <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">
                       {product.stock}
                     </span>
                   )}
@@ -87,10 +81,6 @@ export default function Products() {
                   {product.stock === "In Stock" ? (
                     <button className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
                       Add to Cart
-                    </button>
-                  ) : product.stock === "Pre-Order" ? (
-                    <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
-                      Pre-Order
                     </button>
                   ) : (
                     <button className="flex-1 bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>

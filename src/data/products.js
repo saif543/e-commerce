@@ -47,7 +47,7 @@ export const products = [
     ],
     features: ["S9 SiP chip", "Double tap gesture", "Always-On Retina display", "Blood oxygen monitoring", "Crash Detection"],
     specifications: { "Case Size": "45mm", "Display": "Always-On Retina LTPO OLED", "Chip": "S9 SiP", "Storage": "64GB", "Water Resistance": "WR50 (50m)", "Connectivity": "Bluetooth 5.3, Wi-Fi", "Battery": "Up to 18 hours", "OS": "watchOS 10" },
-    stock: "Pre-Order",
+    stock: "In Stock",
   },
   {
     id: "jbl-charge5",
@@ -172,7 +172,7 @@ export const products = [
     ],
     features: ["MagSafe certified", "15W fast charging", "3-in-1 charging", "LED indicator", "Non-slip base"],
     specifications: { "iPhone Charging": "15W MagSafe", "Watch Charging": "5W magnetic", "AirPods Charging": "5W Qi", "Input": "USB-C 36W adapter", "Cable Length": "1.5m", "Material": "Polycarbonate + silicone", "Color": "White", "Certification": "MFi, Qi" },
-    stock: "Upcoming",
+    stock: "Out of Stock",
   },
   {
     id: "samsung-buds2pro",
