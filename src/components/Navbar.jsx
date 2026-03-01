@@ -162,9 +162,9 @@ export default function Navbar() {
 
         {/* Right */}
         <div className="flex items-center gap-3">
-          <span className="hidden sm:inline text-sm font-semibold text-text-primary hover:text-purple-mid cursor-pointer transition-colors">
+          <Link href="/login" className="hidden sm:inline text-sm font-semibold text-text-primary hover:text-purple-mid transition-colors">
             Login/Register
-          </span>
+          </Link>
           <div className="flex items-center gap-4 ml-3">
             <div className="relative flex items-center">
               <AnimatePresence>
