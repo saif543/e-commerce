@@ -13,14 +13,14 @@
   --color-text-primary: #1a1a2e;
   --color-text-secondary: #6B7280;
   --color-text-muted: #9CA3AF;
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-poppins);
   --font-serif: Georgia, "Times New Roman", serif;
 }
 
 body {
   background: var(--color-offwhite);
   color: var(--color-text-primary);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-poppins), "Poppins", sans-serif;
 }
 
 /* Smooth scrolling */
