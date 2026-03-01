@@ -4,7 +4,8 @@ import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ChevronDown, Grid3X3, LayoutList, Star, SlidersHorizontal, X } from "lucide-react";
+import { ChevronRight, ChevronDown, Grid3X3, LayoutList, Star, SlidersHorizontal, X, Heart } from "lucide-react";
+import { useWishlist } from "@/context/WishlistContext";
 import { products } from "@/data/products";
 
 const sortOptions = [
@@ -194,6 +195,7 @@ export default function CategoryPage({ categoryName, parentName, parentSlug, sub
     setOpenFilter((prev) => (prev === key ? null : key));
   };
 
+  const { toggleWishlist, isInWishlist } = useWishlist();
   const allBrands = [...new Set(products.map((p) => p.brand))];
   const connectivityOptions = ["Wireless", "Bluetooth", "USB-C", "Wi-Fi", "NFC", "3.5mm Jack"];
   const conditionOptions = ["Brand New", "Refurbished", "Open Box"];
@@ -525,12 +527,12 @@ export default function CategoryPage({ categoryName, parentName, parentSlug, sub
                           {product.stock}
                         </button>
                       )}
-                      <Link
-                        href={`/product/${product.id}`}
-                        className="text-[10px] sm:text-xs text-text-secondary hover:text-purple-mid transition-colors underline underline-offset-2"
+                      <button
+                        onClick={() => toggleWishlist(product.id)}
+                        className="p-2 rounded-md border border-gray-200 hover:border-purple-mid transition-colors"
                       >
-                        Details
-                      </Link>
+                        <Heart size={14} className={isInWishlist(product.id) ? "fill-red-500 text-red-500" : "text-text-muted"} />
+                      </button>
                     </div>
                   </div>
                 </motion.div>

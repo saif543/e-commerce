@@ -3,9 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { Heart } from "lucide-react";
 import { products } from "@/data/products";
+import { useWishlist } from "@/context/WishlistContext";
 
 export default function Products() {
+  const { toggleWishlist, isInWishlist } = useWishlist();
   return (
     <section className="bg-cream/50">
       <div className="max-w-[1440px] mx-auto px-6 py-16">
@@ -87,12 +90,12 @@ export default function Products() {
                       {product.stock}
                     </button>
                   )}
-                  <Link
-                    href={`/product/${product.id}`}
-                    className="text-[10px] sm:text-xs text-text-secondary hover:text-purple-mid transition-colors underline underline-offset-2"
+                  <button
+                    onClick={() => toggleWishlist(product.id)}
+                    className="p-2 rounded-md border border-gray-200 hover:border-purple-mid transition-colors"
                   >
-                    Details
-                  </Link>
+                    <Heart size={14} className={isInWishlist(product.id) ? "fill-red-500 text-red-500" : "text-text-muted"} />
+                  </button>
                 </div>
               </div>
             </motion.div>

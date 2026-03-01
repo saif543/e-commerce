@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Heart, ShoppingCart, ChevronDown, ChevronRight, X } from "lucide-react";
 import { categories } from "@/data/categories";
+import { useWishlist } from "@/context/WishlistContext";
 
 const navLinks = [
   { label: "BRANDS", href: "/brands" },
@@ -21,6 +22,7 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchRef = useRef(null);
+  const { wishlist } = useWishlist();
 
   const isCategoryActive = pathname.startsWith("/category");
 
@@ -208,9 +210,16 @@ export default function Navbar() {
                 </motion.button>
               )}
             </div>
-            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} className="text-text-primary hover:text-purple-mid transition-colors">
-              <Heart size={22} />
-            </motion.button>
+            <Link href="/wishlist">
+              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} className="relative text-text-primary hover:text-purple-mid transition-colors">
+                <Heart size={22} className={wishlist.length > 0 ? "fill-red-500 text-red-500" : ""} />
+                {wishlist.length > 0 && (
+                  <span className="absolute -top-2 -right-2.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                    {wishlist.length}
+                  </span>
+                )}
+              </motion.button>
+            </Link>
             <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} className="relative text-text-primary hover:text-purple-mid transition-colors">
               <ShoppingCart size={22} />
               <span className="absolute -top-2 -right-2.5 bg-purple-mid text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">

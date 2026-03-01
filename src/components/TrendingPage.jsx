@@ -4,7 +4,8 @@ import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Grid3X3, LayoutList, Star, SlidersHorizontal, X, TrendingUp, Flame } from "lucide-react";
+import { ChevronDown, Grid3X3, LayoutList, Star, SlidersHorizontal, X, TrendingUp, Flame, Heart } from "lucide-react";
+import { useWishlist } from "@/context/WishlistContext";
 import { products } from "@/data/products";
 
 const sortOptions = [
@@ -53,6 +54,7 @@ export default function TrendingPage() {
     setOpenFilter((prev) => (prev === key ? null : key));
   };
 
+  const { toggleWishlist, isInWishlist } = useWishlist();
   const allBrands = [...new Set(products.map((p) => p.brand))];
   const availabilityOptions = ["In Stock", "Out of Stock"];
 
@@ -350,9 +352,12 @@ export default function TrendingPage() {
                       ) : (
                         <button className="flex-1 bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>{product.stock}</button>
                       )}
-                      <Link href={`/product/${product.id}`} className="text-[10px] sm:text-xs text-text-secondary hover:text-purple-mid transition-colors underline underline-offset-2">
-                        Details
-                      </Link>
+                      <button
+                        onClick={() => toggleWishlist(product.id)}
+                        className="p-2 rounded-md border border-gray-200 hover:border-purple-mid transition-colors"
+                      >
+                        <Heart size={14} className={isInWishlist(product.id) ? "fill-red-500 text-red-500" : "text-text-muted"} />
+                      </button>
                     </div>
                   </div>
                 </motion.div>
