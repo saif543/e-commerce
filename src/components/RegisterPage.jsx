@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
+import Swal from "sweetalert2";
 
 function GoogleIcon() {
   return (
@@ -15,6 +19,75 @@ function GoogleIcon() {
 }
 
 export default function RegisterPage() {
+  const router = useRouter()
+  const { handleGoogleSignIn, loading } = useAuth()
+  const [signInLoading, setSignInLoading] = useState(false)
+
+  const handleGoogleRegister = async () => {
+    setSignInLoading(true)
+    try {
+      const result = await handleGoogleSignIn()
+      
+      if (result.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Welcome to Nishat!',
+          text: 'Your account has been created successfully',
+          timer: 1500,
+          showConfirmButton: false,
+          confirmButtonColor: '#4C1D95',
+        })
+        
+        // Redirect to home page after successful registration
+        setTimeout(() => {
+          router.push('/')
+        }, 1500)
+      } else {
+        // Check for specific Firebase errors
+        let errorMessage = result.error || 'Failed to sign up with Google'
+        
+        if (result.error.includes('operation-not-allowed')) {
+          errorMessage = 'Google Sign-In is not enabled. Please contact the administrator.'
+        } else if (result.error.includes('popup-closed-by-user')) {
+          errorMessage = 'Sign-up was cancelled'
+        } else if (result.error.includes('network-request-failed')) {
+          errorMessage = 'Network error. Please check your internet connection'
+        }
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Registration Failed',
+          text: errorMessage,
+          confirmButtonColor: '#4C1D95',
+        })
+      }
+    } catch (error) {
+      console.error('Google registration error:', error)
+      
+      let errorMessage = 'An error occurred during sign up'
+      
+      // Handle Firebase error codes
+      if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = 'Google Sign-In is not enabled in Firebase. Please contact the administrator.'
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Sign-up was cancelled'
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your internet connection'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Registration Failed',
+        text: errorMessage,
+        confirmButtonColor: '#4C1D95',
+      })
+    } finally {
+      setSignInLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-offwhite flex items-center justify-center px-4">
       <motion.div
@@ -39,9 +112,19 @@ export default function RegisterPage() {
         </p>
 
         {/* Google button */}
-        <button className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3.5 px-4 text-sm font-semibold text-text-primary hover:bg-gray-50 hover:border-gray-300 transition-colors">
-          <GoogleIcon />
-          Sign up with Google
+        <button 
+          onClick={handleGoogleRegister}
+          disabled={signInLoading || loading}
+          className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3.5 px-4 text-sm font-semibold text-text-primary hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {signInLoading || loading ? (
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-dark"></div>
+          ) : (
+            <>
+              <GoogleIcon />
+              Sign up with Google
+            </>
+          )}
         </button>
 
         <div className="flex items-center gap-3 my-6">

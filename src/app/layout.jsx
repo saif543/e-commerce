@@ -1,6 +1,7 @@
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -17,7 +18,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${poppins.variable} antialiased`}>
-        <WishlistProvider>{children}</WishlistProvider>
+        <AuthProvider>
+          <WishlistProvider>{children}</WishlistProvider>
+        </AuthProvider>
       </body>
     </html>
   );

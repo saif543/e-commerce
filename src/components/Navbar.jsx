@@ -3,10 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Search, Heart, ShoppingCart, ChevronDown, ChevronRight, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Search, Heart, ShoppingCart, ChevronDown, ChevronRight, X, User, LogOut } from "lucide-react";
 import { categories } from "@/data/categories";
 import { useWishlist } from "@/context/WishlistContext";
+import { useAuth } from "@/hooks/useAuth";
+import Swal from "sweetalert2";
 
 const navLinks = [
   { label: "BRANDS", href: "/brands" },
@@ -17,10 +19,14 @@ const navLinks = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, signOut, userRole } = useAuth();
   const [showCategories, setShowCategories] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const searchRef = useRef(null);
   const { wishlist } = useWishlist();
 
@@ -31,6 +37,33 @@ export default function Navbar() {
       searchRef.current.focus();
     }
   }, [searchOpen]);
+
+  const handleLogout = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      setUserMenuOpen(false);
+      Swal.fire({
+        icon: 'success',
+        title: 'Logged Out',
+        text: 'You have been successfully logged out',
+        timer: 1500,
+        showConfirmButton: false,
+        confirmButtonColor: '#4C1D95',
+      });
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Logout Failed',
+        text: 'Failed to log out. Please try again.',
+        confirmButtonColor: '#4C1D95',
+      });
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   return (
     <motion.nav
@@ -164,9 +197,93 @@ export default function Navbar() {
 
         {/* Right */}
         <div className="flex items-center gap-3">
-          <Link href="/login" className="hidden sm:inline text-sm font-semibold text-text-primary hover:text-purple-mid transition-colors">
-            Login/Register
-          </Link>
+          {user ? (
+            /* User Menu */
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div className="w-8 h-8 bg-purple-mid rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                  {user.email?.[0]?.toUpperCase()}
+                </div>
+                <span className="hidden sm:inline text-sm font-semibold text-text-primary">
+                  {user.displayName || user.email?.split('@')[0]}
+                </span>
+                {userRole === 'admin' && (
+                  <span className="hidden sm:inline px-2 py-0.5 bg-[#FF6B35] text-white text-[10px] font-bold rounded-full">
+                    ADMIN
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50"
+                  >
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-text-primary">
+                        {user.displayName || user.email?.split('@')[0]}
+                      </p>
+                      <p className="text-xs text-text-muted truncate">{user.email}</p>
+                      {userRole === 'admin' && (
+                        <Link
+                          href="/admin"
+                          className="inline-block mt-2 px-2 py-1 bg-[#FF6B35] text-white text-[10px] font-bold rounded-full"
+                        >
+                          Admin Panel
+                        </Link>
+                      )}
+                    </div>
+                    <div className="py-2">
+                      <Link
+                        href="/wishlist"
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary hover:bg-gray-50 hover:text-purple-mid transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <Heart size={18} />
+                        Wishlist
+                      </Link>
+                      {userRole === 'admin' && (
+                        <Link
+                          href="/admin"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary hover:bg-gray-50 hover:text-purple-mid transition-colors"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <User size={18} />
+                          Admin Dashboard
+                        </Link>
+                      )}
+                    </div>
+                    <div className="py-2 border-t border-gray-100">
+                      <button
+                        onClick={handleLogout}
+                        disabled={signingOut}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                      >
+                        {signingOut ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                        ) : (
+                          <LogOut size={18} />
+                        )}
+                        Logout
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : (
+            /* Login Button */
+            <Link href="/login" className="hidden sm:inline text-sm font-semibold text-text-primary hover:text-purple-mid transition-colors">
+              Login/Register
+            </Link>
+          )}
+          
           <div className="flex items-center gap-4 ml-3">
             <div className="relative flex items-center">
               <AnimatePresence>

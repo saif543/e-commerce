@@ -43,7 +43,7 @@ async function getUserFromDatabase(email) {
         }
 
         const client = await clientPromise
-        const db = client.db('BUYKORBO')
+        const db = client.db('ECOM')
         const user = await db.collection('user').findOne({ email: email.toLowerCase() })
         return user
     } catch (error) {
@@ -64,7 +64,7 @@ async function ensureUserInDatabase(firebaseUser) {
         }
 
         const client = await clientPromise
-        const db = client.db('BUYKORBO')
+        const db = client.db('ECOM')
 
         const existingUser = await db.collection('user').findOne({
             email: firebaseUser.email.toLowerCase()
@@ -281,7 +281,7 @@ export async function updateUserRole(email, role, branch = null) {
         }
 
         const client = await clientPromise
-        const db = client.db('BUYKORBO')
+        const db = client.db('ECOM')
 
         const updateData = {
             role,
@@ -308,3 +308,4 @@ export async function updateUserRole(email, role, branch = null) {
 export async function ensureUserInDatabaseExport(firebaseUser) {
     return ensureUserInDatabase(firebaseUser)
 }
+
