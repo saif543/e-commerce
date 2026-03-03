@@ -966,11 +966,15 @@ Dynamic category management — no hardcoded slugs or constants.
 - `DELETE /api/category?id=<id>&subcategoryId=<id>` — delete a single subcategory
 
 ### Product API (`/api/product`)
-- Products reference category/subcategory as plain text strings (from admin's dynamic categories)
-- No slug fields — always identified by MongoDB `_id`
-- Images uploaded separately via `PUT /api/product?action=upload-images`
-- Soft delete (`isActive: false`) by default; hard delete with `?hard=true`
-- Full text search, filters: category, subcategory, brand, price range, isFeatured, isTrending
+- Products reference category/subcategory/brand as plain text strings (from admin's dynamic categories).
+- **Core Fields:** `name`, `description`, `category`, `subcategory`, `brand`, `sku`, `condition` (new/refurbished/used), `status` (active/draft/archived).
+- **Stock:** `stockQty`, `stock` (in_stock/out_of_stock/limited), `inventory` tracking rules.
+- **Pricing:** `price` (regular price), `originalPrice` (cost per item), `discount` (sale price).
+- **Extras:** `features` (array), `specifications` (key-value), `customFields` (key-value).
+- **Flags:** `isFeatured`, `isTrending`.
+- **Note:** `barcode`, `region`, `storage`, and `tags` were explicitly removed from the API as of version 0.2.1.
+- Images uploaded separately via `PUT /api/product?action=upload-images` (to Cloudinary).
+- Full text search, filters: category, subcategory, brand, price range, isFeatured, isTrending, status.
 
 ### Brand API (`/api/brand`)
 - Brand logos uploaded to Cloudinary (`ecom/brands/`)
@@ -978,7 +982,7 @@ Dynamic category management — no hardcoded slugs or constants.
 
 ### Slider API (`/api/slider`)
 - Images uploaded to Cloudinary (`ecom/sliders/`) at 1920×800
-- Full CRUD with image replacement support
+- Full CRUD with image replacement support, draggable reordering (`action="reorder"`)
 
 ### Orders API (`/api/orders`)
 - **Total always calculated server-side** — client-provided total is ignored

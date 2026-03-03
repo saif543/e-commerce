@@ -23,7 +23,7 @@ const writeRequestCounts = new Map()
 const WRITE_RATE_LIMIT = 30
 const WRITE_WINDOW_MS = 15 * 60 * 1000
 
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/svg+xml']
+const ALLOWED_IMAGE_TYPES = null // All image types accepted
 
 // ============================================================
 // 🛡️ SECURITY HELPERS
@@ -174,9 +174,6 @@ export async function POST(req) {
         // Upload logo if provided
         let logo = null
         if (logoFile) {
-            if (!ALLOWED_IMAGE_TYPES.includes(logoFile.type)) {
-                return NextResponse.json({ error: 'Invalid logo type. Allowed: JPEG, PNG, WebP, SVG' }, { status: 400 })
-            }
             const maxSize = user.role === 'admin' ? MAX_IMAGE_SIZE_ADMIN : MAX_IMAGE_SIZE_USER
             if (logoFile.size > maxSize) {
                 return NextResponse.json({ error: 'Logo file too large' }, { status: 400 })
@@ -200,7 +197,7 @@ export async function POST(req) {
         const created = await db.collection('brands').findOne({ _id: result.insertedId })
 
         logAudit('BRAND_CREATED', { userId: user.userId, userEmail: user.email, brandId: result.insertedId.toString(), name }, req)
-        return NextResponse.json({ message: 'Brand created successfully', brand: created }, { status: 201 })
+        return NextResponse.json({ success: true, message: 'Brand created successfully', brand: created }, { status: 201 })
 
     } catch (err) {
         console.error('❌ POST /api/brand error:', err)
@@ -242,9 +239,6 @@ export async function PUT(req) {
 
             const logoFile = formData.get('logo')
             if (logoFile) {
-                if (!ALLOWED_IMAGE_TYPES.includes(logoFile.type)) {
-                    return NextResponse.json({ error: 'Invalid logo type' }, { status: 400 })
-                }
                 const maxSize = user.role === 'admin' ? MAX_IMAGE_SIZE_ADMIN : MAX_IMAGE_SIZE_USER
                 if (logoFile.size > maxSize) return NextResponse.json({ error: 'Logo too large' }, { status: 400 })
 
@@ -300,7 +294,7 @@ export async function PUT(req) {
         const updated = await db.collection('brands').findOne({ _id: oid })
 
         logAudit('BRAND_UPDATED', { userId: user.userId, userEmail: user.email, brandId: id, updatedFields: Object.keys(updateData) }, req)
-        return NextResponse.json({ message: 'Brand updated successfully', brand: updated }, { status: 200 })
+        return NextResponse.json({ success: true, message: 'Brand updated successfully', brand: updated }, { status: 200 })
 
     } catch (err) {
         console.error('❌ PUT /api/brand error:', err)
@@ -360,7 +354,7 @@ export async function DELETE(req) {
         await db.collection('brands').deleteOne({ _id: oid })
 
         logAudit('BRAND_DELETED', { userId: user.userId, userEmail: user.email, brandId: id, name: brand.name }, req)
-        return NextResponse.json({ message: 'Brand deleted successfully' }, { status: 200 })
+        return NextResponse.json({ success: true, message: 'Brand deleted successfully' }, { status: 200 })
 
     } catch (err) {
         console.error('❌ DELETE /api/brand error:', err)

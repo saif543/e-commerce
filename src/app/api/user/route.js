@@ -1,132 +1,135 @@
-// User API - Firebase Token Authentication
+// User API - Firebase Token Authentication (Firebase-only, no JWT fallback)
 import { NextResponse } from 'next/server'
 import { v2 as cloudinary } from 'cloudinary'
 import { verifyApiToken, requireRole, createAuthError, checkRateLimit } from '@/lib/auth'
 import clientPromise from '@/lib/mongodb'
 
-// Validate environment variables
-if (
-    !process.env.CLOUDINARY_CLOUD_NAME ||
-    !process.env.CLOUDINARY_API_KEY ||
-    !process.env.CLOUDINARY_API_SECRET
-) {
+// ── Validate Cloudinary env vars at startup ──
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
     throw new Error('Missing required Cloudinary environment variables')
 }
 
-// Configure Cloudinary
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
-// Helper to log audit events to MongoDB (non-blocking)
+// ── Security constants ──
+const MAX_BODY_SIZE = 20_000
+const WRITE_RATE_LIMIT = 30
+const WRITE_WINDOW_MS = 15 * 60 * 1000
+const writeRequestCounts = new Map()
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const VALID_ROLES = ['admin', 'user', 'shop_owner']
+
+function isValidEmail(email) {
+    return typeof email === 'string' && EMAIL_REGEX.test(email)
+}
+
+function getClientIP(req) {
+    return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        req.headers.get('x-real-ip') || 'unknown'
+}
+
+function checkWriteRateLimit(req) {
+    const ip = getClientIP(req)
+    const now = Date.now()
+    const current = writeRequestCounts.get(ip) || { count: 0, timestamp: now }
+    if (current.timestamp < now - WRITE_WINDOW_MS) { current.count = 1; current.timestamp = now }
+    else current.count++
+    writeRequestCounts.set(ip, current)
+    if (current.count > WRITE_RATE_LIMIT) throw new Error('Too many write requests')
+}
+
+function sanitizeString(value, maxLength = 200) {
+    if (typeof value !== 'string') return ''
+    return value.trim()
+        .replace(/<[^>]*>/g, '')
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+        .slice(0, maxLength)
+}
+
 async function logAudit(action, data, req) {
     setImmediate(async () => {
         try {
             const client = await clientPromise
-            const db = client.db('ECOM')
-            await db.collection('audit_logs').insertOne({
-                action,
-                ...data,
-                timestamp: new Date(),
-                ipAddress: req.headers.get('x-forwarded-for')?.split(',')[0] ||
-                    req.headers.get('x-real-ip') ||
-                    'unknown'
+            await client.db('ECOM').collection('audit_logs').insertOne({
+                action, ...data, timestamp: new Date(), ipAddress: getClientIP(req),
             })
-        } catch (auditError) {
-            console.error('Audit log error:', auditError)
-        }
+        } catch (err) { console.error('Audit log error:', err.message) }
     })
 }
 
-// GET: return all users OR check by email if provided
+// ── Strip sensitive fields before returning to client ──
+function sanitizeUserResponse(user) {
+    if (!user) return null
+    const { firebaseUid, ...safeUser } = user
+    return safeUser
+}
+
+// ============================================================
+// 📦 GET — Own profile / check email / list all (admin)
+// 🔒 Requires Firebase Bearer token
+// ============================================================
 export async function GET(req) {
     let user = null
-
     try {
         await checkRateLimit(req)
         user = await verifyApiToken(req)
     } catch (authError) {
-        console.error('❌ Authentication error in GET /api/user:', authError.message)
-        return createAuthError(authError.message, 401)
+        return createAuthError(authError.message, authError.message.includes('rate') ? 429 : 401)
     }
 
     try {
         const { searchParams } = new URL(req.url)
         const email = searchParams.get('email')
         const getAllUsers = searchParams.get('getAllUsers')
+        const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+        const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)))
 
-        console.log('🔍 GET /api/user params:', { email, getAllUsers })
-        console.log('🔍 Authenticated user:', { email: user.email, role: user.role })
-
-        // Input validation
-        if (email && (typeof email !== 'string' || !email.includes('@'))) {
-            return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
-        }
-
-        if (email) {
-            // Users can only check their own email unless admin
-            if (user.email !== email && user.role !== 'admin') {
-                return createAuthError('Access denied: Cannot check other users', 403)
-            }
-
-            // Get user from MongoDB
-            const client = await clientPromise
-            const db = client.db('ECOM')
-            const foundUser = await db.collection('user').findOne({ email: email.toLowerCase() })
-
-            logAudit('USER_EMAIL_CHECK', {
-                userId: user.userId,
-                userEmail: user.email,
-                checkedEmail: email,
-                found: !!foundUser
-            }, req)
-
-            return NextResponse.json({ exists: !!foundUser, user: foundUser })
-        }
-
-        // Get all users - ADMIN ONLY
-        if (getAllUsers === 'true') {
-            try {
-                requireRole(user, ['admin'])
-            } catch (roleError) {
-                console.error('❌ Role requirement error:', roleError.message)
-                return createAuthError(roleError.message, 403)
-            }
-
-            console.log('🔍 Fetching all users from MongoDB...')
-
-            const client = await clientPromise
-            const db = client.db('ECOM')
-            const users = await db.collection('user').find({}).limit(1000).toArray()
-
-            console.log('🔍 Users found:', users.length)
-
-            logAudit('ALL_USERS_ACCESSED', {
-                userId: user.userId,
-                userEmail: user.email,
-                userRole: user.role,
-                resultCount: users.length
-            }, req)
-
-            return NextResponse.json({ users })
-        }
-
-        // Default: return current user's own profile
         const client = await clientPromise
         const db = client.db('ECOM')
-        const currentUser = await db.collection('user').findOne({ email: user.email.toLowerCase() })
 
-        if (!currentUser) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 })
+        // ── Check specific email ──
+        if (email) {
+            if (!isValidEmail(email)) {
+                return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
+            }
+            // Users can only check their own email unless admin
+            if (user.email !== email.toLowerCase() && user.role !== 'admin') {
+                return createAuthError('Access denied', 403)
+            }
+            const foundUser = await db.collection('user').findOne({ email: email.toLowerCase() })
+            logAudit('USER_EMAIL_CHECK', { userId: user.userId, checkedEmail: email, found: !!foundUser }, req)
+            return NextResponse.json({ exists: !!foundUser, user: sanitizeUserResponse(foundUser) })
         }
 
-        return NextResponse.json({ user: currentUser })
+        // ── Admin: list all users (paginated) ──
+        if (getAllUsers === 'true') {
+            try { requireRole(user, ['admin']) } catch {
+                return createAuthError('Admin access required', 403)
+            }
+            const skip = (page - 1) * limit
+            const [users, total] = await Promise.all([
+                db.collection('user').find({}).skip(skip).limit(limit).sort({ createdAt: -1 }).toArray(),
+                db.collection('user').countDocuments(),
+            ])
+            logAudit('ALL_USERS_ACCESSED', { userId: user.userId, page, limit, total }, req)
+            return NextResponse.json({
+                users: users.map(sanitizeUserResponse),
+                pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+            })
+        }
+
+        // ── Default: current user's own profile ──
+        const currentUser = await db.collection('user').findOne({ email: user.email.toLowerCase() })
+        if (!currentUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+        return NextResponse.json({ user: sanitizeUserResponse(currentUser) })
 
     } catch (err) {
-        console.error('❌ GET /api/user error:', err)
-        console.error('❌ Stack trace:', err.stack)
+        console.error('❌ GET /api/user error:', err.message)
         return NextResponse.json({
             error: 'Failed to fetch user data',
             details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
@@ -134,187 +137,143 @@ export async function GET(req) {
     }
 }
 
-// POST: insert user OR update user profile/role based on action parameter
+// ============================================================
+// ✏️ POST — Create user (self-reg) or update profile/role
+// 🔒 Update/role-change requires Firebase Bearer token
+//    Self-registration is open but write-rate-limited
+// ============================================================
 export async function POST(req) {
     try {
         await checkRateLimit(req)
+        checkWriteRateLimit(req)
+    } catch (rl) {
+        return createAuthError(rl.message, 429)
+    }
+
+    try {
+        const contentLength = parseInt(req.headers.get('content-length') || '0', 10)
+        if (contentLength > MAX_BODY_SIZE) {
+            return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+        }
 
         const body = await req.json()
         const { action } = body
 
-        console.log('🔍 POST /api/user action:', action)
-        console.log('🔍 Request body:', JSON.stringify(body, null, 2))
-
-        // Input validation
-        if (!body.email || typeof body.email !== 'string' || !body.email.includes('@')) {
+        if (!body.email || !isValidEmail(body.email)) {
             return NextResponse.json({ error: 'Valid email is required' }, { status: 400 })
         }
 
-        // Handle profile/role update
+        const client = await clientPromise
+        const db = client.db('ECOM')
+
+        // ── Action: update profile or role ──
         if (action === 'update') {
-            let user
-            try {
-                user = await verifyApiToken(req)
-            } catch (authError) {
-                return createAuthError(authError.message, 401)
+            let authUser
+            try { authUser = await verifyApiToken(req) } catch (e) {
+                return createAuthError(e.message, 401)
             }
 
             const { email, name, phone, role } = body
-
-            // Users can only update their own profile unless admin
-            if (user.email !== email && user.role !== 'admin') {
+            if (authUser.email !== email.toLowerCase() && authUser.role !== 'admin') {
                 return createAuthError('Access denied: Cannot update other users', 403)
             }
 
-            // Find user first to get their ID
-            const client = await clientPromise
-            const db = client.db('ECOM')
             const existingUser = await db.collection('user').findOne({ email: email.toLowerCase() })
+            if (!existingUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
-            if (!existingUser) {
-                return NextResponse.json({ error: 'User not found' }, { status: 404 })
-            }
-
-            // Build update data
             const updateData = {}
-
             if (name !== undefined) {
-                if (typeof name !== 'string' || name.trim().length < 1) {
-                    return NextResponse.json({ error: 'Valid name is required' }, { status: 400 })
-                }
-                updateData.name = name.trim()
+                const cleanName = sanitizeString(name, 100)
+                if (!cleanName) return NextResponse.json({ error: 'Valid name is required' }, { status: 400 })
+                updateData.name = cleanName
             }
+            if (phone !== undefined) updateData.phone = sanitizeString(String(phone), 20)
 
-            if (phone !== undefined) {
-                if (typeof phone !== 'string') {
-                    return NextResponse.json({ error: 'Valid phone is required' }, { status: 400 })
-                }
-                updateData.phone = phone.trim()
-            }
-
-            // Role updates - admin only
             if (role !== undefined) {
-                try {
-                    requireRole(user, ['admin'])
-                } catch (roleError) {
-                    return createAuthError('Only admins can update user roles', 403)
+                try { requireRole(authUser, ['admin']) } catch {
+                    return createAuthError('Only admins can update roles', 403)
                 }
-
-                if (['admin', 'user', 'shop_owner'].includes(role)) {
-                    updateData.role = role
-                    console.log('✅ Setting role to:', role)
-                } else {
-                    return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+                if (!VALID_ROLES.includes(role)) {
+                    return NextResponse.json({ error: `Invalid role. Valid: ${VALID_ROLES.join(', ')}` }, { status: 400 })
                 }
+                updateData.role = role
             }
 
-            console.log('🔄 Updating user with data:', updateData)
+            if (Object.keys(updateData).length === 0) {
+                return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+            }
 
-            const result = await db.collection('user').updateOne(
+            await db.collection('user').updateOne(
                 { _id: existingUser._id },
                 { $set: { ...updateData, updatedAt: new Date() } }
             )
-
             const updatedUser = await db.collection('user').findOne({ _id: existingUser._id })
-
-            console.log('✅ Updated user role:', updatedUser.role)
-
-            logAudit('USER_PROFILE_UPDATED', {
-                userId: user.userId,
-                userEmail: user.email,
-                targetEmail: email,
-                updatedFields: Object.keys(updateData)
-            }, req)
-
-            return NextResponse.json({
-                message: 'Profile updated successfully',
-                user: updatedUser,
-            }, { status: 200 })
+            logAudit('USER_PROFILE_UPDATED', { userId: authUser.userId, targetEmail: email, updatedFields: Object.keys(updateData) }, req)
+            return NextResponse.json({ success: true, message: 'Profile updated successfully', user: sanitizeUserResponse(updatedUser) })
         }
 
-        // Handle user creation - ALLOW SELF-REGISTRATION OR ADMIN CREATION
-        let user = null
+        // ── Action: self-registration or admin creation ──
+        let authUser = null
         let isAdminCreation = false
-        let requiresAuth = false
-
         try {
-            user = await verifyApiToken(req)
-            isAdminCreation = user.email !== body.email.toLowerCase()
-            requiresAuth = true
-        } catch (authError) {
-            isAdminCreation = false
-            requiresAuth = false
-        }
+            authUser = await verifyApiToken(req)
+            isAdminCreation = authUser.email.toLowerCase() !== body.email.toLowerCase()
+        } catch { /* unauthenticated self-registration is allowed */ }
 
-        // Only require admin role if creating for someone else
-        if (isAdminCreation && requiresAuth) {
-            try {
-                requireRole(user, ['admin'])
-            } catch (roleError) {
+        if (isAdminCreation) {
+            try { requireRole(authUser, ['admin']) } catch {
                 return createAuthError('Only admins can create accounts for other users', 403)
             }
         }
 
-        // Check if user exists
-        const client = await clientPromise
-        const db = client.db('ECOM')
+        // Check if user already exists
         const existingUser = await db.collection('user').findOne({ email: body.email.toLowerCase() })
-
         if (existingUser) {
-            return NextResponse.json({ message: 'User already exists', user: existingUser }, { status: 200 })
+            return NextResponse.json({ message: 'User already exists', user: sanitizeUserResponse(existingUser) })
         }
 
-        // Validate required fields for new user
-        if (!body.name || typeof body.name !== 'string' || body.name.trim().length < 1) {
-            return NextResponse.json({ error: 'Valid name is required' }, { status: 400 })
-        }
+        const cleanName = sanitizeString(body.name || '', 100)
+        if (!cleanName) return NextResponse.json({ error: 'Valid name is required' }, { status: 400 })
 
-        // Create new user
         const newUserData = {
             email: body.email.toLowerCase().trim(),
-            name: body.name.trim(),
-            phone: body.phone || '',
-            role: isAdminCreation && body.role && ['admin', 'user', 'shop_owner'].includes(body.role)
-                ? body.role
-                : 'user',
-            profilePicture: body.profilePicture || '',
-            firebaseUid: body.firebaseUid || '',
+            name: cleanName,
+            phone: sanitizeString(body.phone || '', 20),
+            role: isAdminCreation && VALID_ROLES.includes(body.role) ? body.role : 'user',
+            profilePicture: sanitizeString(body.profilePicture || '', 500),
+            firebaseUid: sanitizeString(body.firebaseUid || '', 128),
             createdAt: new Date(),
             updatedAt: new Date(),
         }
 
         const result = await db.collection('user').insertOne(newUserData)
         const createdUser = await db.collection('user').findOne({ _id: result.insertedId })
-
-        logAudit(user ? 'USER_CREATED' : 'SELF_REGISTRATION', {
-            userId: user?.userId,
-            userEmail: user?.email,
-            targetEmail: body.email,
-            assignedRole: newUserData.role
+        logAudit(authUser ? 'USER_CREATED_BY_ADMIN' : 'USER_SELF_REGISTERED', {
+            userId: authUser?.userId, targetEmail: body.email, role: newUserData.role,
         }, req)
-
-        return NextResponse.json({ message: 'User created', user: createdUser }, { status: 201 })
+        return NextResponse.json({ success: true, message: 'User created', user: sanitizeUserResponse(createdUser) }, { status: 201 })
 
     } catch (err) {
-        console.error('❌ POST /api/user error:', err)
-        console.error('❌ Stack trace:', err.stack)
+        console.error('❌ POST /api/user error:', err.message)
         return NextResponse.json({
-            error: 'Failed to process user data',
+            error: 'Failed to process request',
             details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
         }, { status: 500 })
     }
 }
 
-// PUT: update user profile picture with Cloudinary upload
+// ============================================================
+// 🖼️ PUT — Update profile picture (upload to Cloudinary)
+// 🔒 Requires Firebase Bearer token
+// ============================================================
 export async function PUT(req) {
     let user = null
-
     try {
         await checkRateLimit(req)
+        checkWriteRateLimit(req)
         user = await verifyApiToken(req)
     } catch (authError) {
-        console.error('❌ Authentication error in PUT /api/user:', authError.message)
-        return createAuthError(authError.message, 401)
+        return createAuthError(authError.message, authError.message.includes('rate') ? 429 : 401)
     }
 
     try {
@@ -322,118 +281,76 @@ export async function PUT(req) {
         const email = formData.get('email')
         const file = formData.get('file')
 
-        // Input validation
-        if (!email || typeof email !== 'string' || !email.includes('@')) {
+        if (!email || !isValidEmail(email)) {
             return NextResponse.json({ error: 'Valid email is required' }, { status: 400 })
         }
+        if (!file) return NextResponse.json({ error: 'File is required' }, { status: 400 })
 
-        if (!file) {
-            return NextResponse.json({ error: 'File is required' }, { status: 400 })
+        // Ownership check
+        if (user.email !== email.toLowerCase() && user.role !== 'admin') {
+            return createAuthError('Access denied', 403)
         }
 
-        // Users can only update their own profile picture unless admin
-        if (user.email !== email && user.role !== 'admin') {
-            return createAuthError('Access denied: Cannot update other users\' profile pictures', 403)
-        }
-
-        // Validate file type
+        // File validation — all image types accepted, 5MB max for regular users, 10MB for admins
         if (!file.type.startsWith('image/')) {
             return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 })
         }
-
-        // Validate file size (5MB limit)
-        const maxSize = 5 * 1024 * 1024 // 5MB
+        const maxSize = user.role === 'admin' ? 10 * 1024 * 1024 : 5 * 1024 * 1024
         if (file.size > maxSize) {
-            return NextResponse.json({ error: 'File size must be less than 5MB' }, { status: 400 })
+            return NextResponse.json({ error: `File too large (max ${user.role === 'admin' ? '10MB' : '5MB'})` }, { status: 400 })
         }
 
-        // Convert file to buffer for Cloudinary upload
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
 
         // Upload to Cloudinary
         const uploadResponse = await new Promise((resolve, reject) => {
-            cloudinary.uploader
-                .upload_stream(
-                    {
-                        resource_type: 'image',
-                        folder: 'nishat_profile_pictures',
-                        public_id: `user_${email
-                            .replace('@', '_')
-                            .replace(/\./g, '_')}_${Date.now()}`,
-                        transformation: [
-                            { width: 400, height: 400, crop: 'fill' },
-                            { quality: 'auto' },
-                            { format: 'auto' },
-                        ],
-                    },
-                    (error, result) => {
-                        if (error) {
-                            console.error('Cloudinary upload error:', error)
-                            reject(new Error(`Cloudinary upload failed: ${error.message}`))
-                        } else {
-                            resolve(result)
-                        }
-                    }
-                )
-                .end(buffer)
+            cloudinary.uploader.upload_stream(
+                {
+                    resource_type: 'image',
+                    folder: 'ecom/profile_pictures',
+                    public_id: `user_${email.replace('@', '_').replace(/\./g, '_')}_${Date.now()}`,
+                    transformation: [
+                        { width: 400, height: 400, crop: 'fill' },
+                        { quality: 'auto' },
+                        { format: 'auto' },
+                    ],
+                },
+                (error, result) => error ? reject(error) : resolve(result)
+            ).end(buffer)
         })
 
-        // Find user
         const client = await clientPromise
         const db = client.db('ECOM')
         const existingUser = await db.collection('user').findOne({ email: email.toLowerCase() })
 
         if (!existingUser) {
-            // If upload succeeded but user not found, clean up the uploaded image
-            try {
-                await cloudinary.uploader.destroy(uploadResponse.public_id)
-            } catch (cleanupError) {
-                console.error('Error cleaning up uploaded image:', cleanupError)
-            }
+            // Clean up uploaded image since we can't store it
+            await cloudinary.uploader.destroy(uploadResponse.public_id).catch(() => { })
             return NextResponse.json({ error: 'User not found' }, { status: 404 })
         }
 
-        // Delete old profile picture from Cloudinary if exists
+        // Delete old profile picture
         if (existingUser.profilePicturePublicId) {
-            try {
-                await cloudinary.uploader.destroy(existingUser.profilePicturePublicId)
-            } catch (deleteError) {
-                console.error('Error deleting old image:', deleteError)
-            }
+            await cloudinary.uploader.destroy(existingUser.profilePicturePublicId).catch(() => { })
         }
 
-        // Update user with new profile picture URL
         await db.collection('user').updateOne(
             { _id: existingUser._id },
-            {
-                $set: {
-                    profilePicture: uploadResponse.secure_url,
-                    profilePicturePublicId: uploadResponse.public_id,
-                    updatedAt: new Date()
-                }
-            }
+            { $set: { profilePicture: uploadResponse.secure_url, profilePicturePublicId: uploadResponse.public_id, updatedAt: new Date() } }
         )
 
         const updatedUser = await db.collection('user').findOne({ _id: existingUser._id })
-
-        logAudit('PROFILE_PICTURE_UPDATED', {
-            userId: user.userId,
-            userEmail: user.email,
-            targetEmail: email,
-            cloudinaryPublicId: uploadResponse.public_id
-        }, req)
-
+        logAudit('PROFILE_PICTURE_UPDATED', { userId: user.userId, targetEmail: email, cloudinaryId: uploadResponse.public_id }, req)
         return NextResponse.json({
+            success: true,
             message: 'Profile picture updated successfully',
             imageUrl: uploadResponse.secure_url,
-            publicId: uploadResponse.public_id,
-            user: updatedUser
-        }, { status: 200 })
+            user: sanitizeUserResponse(updatedUser),
+        })
 
     } catch (err) {
-        console.error('❌ Error updating profile picture:', err)
-        console.error('❌ Stack trace:', err.stack)
+        console.error('❌ PUT /api/user error:', err.message)
         return NextResponse.json({
             error: 'Failed to update profile picture',
             details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
@@ -441,80 +358,54 @@ export async function PUT(req) {
     }
 }
 
-// DELETE: remove user profile picture from Cloudinary and database
+// ============================================================
+// 🗑️ DELETE — Remove profile picture
+// 🔒 Requires Firebase Bearer token
+// ============================================================
 export async function DELETE(req) {
     let user = null
-
     try {
         await checkRateLimit(req)
+        checkWriteRateLimit(req)
         user = await verifyApiToken(req)
     } catch (authError) {
-        console.error('❌ Authentication error in DELETE /api/user:', authError.message)
-        return createAuthError(authError.message, 401)
+        return createAuthError(authError.message, authError.message.includes('rate') ? 429 : 401)
     }
 
     try {
         const { searchParams } = new URL(req.url)
         const email = searchParams.get('email')
 
-        // Input validation
-        if (!email || typeof email !== 'string' || !email.includes('@')) {
+        if (!email || !isValidEmail(email)) {
             return NextResponse.json({ error: 'Valid email is required' }, { status: 400 })
         }
-
-        // Users can only delete their own profile picture unless admin
-        if (user.email !== email && user.role !== 'admin') {
-            return createAuthError('Access denied: Cannot delete other users\' profile pictures', 403)
+        if (user.email !== email.toLowerCase() && user.role !== 'admin') {
+            return createAuthError('Access denied', 403)
         }
 
-        // Find user
         const client = await clientPromise
         const db = client.db('ECOM')
         const foundUser = await db.collection('user').findOne({ email: email.toLowerCase() })
-
-        if (!foundUser) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 })
-        }
+        if (!foundUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
         if (!foundUser.profilePicturePublicId) {
-            return NextResponse.json({ message: 'No profile picture to delete' }, { status: 200 })
+            return NextResponse.json({ success: true, message: 'No profile picture to delete' })
         }
 
-        // Delete from Cloudinary
-        try {
-            await cloudinary.uploader.destroy(foundUser.profilePicturePublicId)
-        } catch (deleteError) {
-            console.error('Error deleting from Cloudinary:', deleteError)
-        }
-
-        // Update user - remove profile picture fields
+        await cloudinary.uploader.destroy(foundUser.profilePicturePublicId).catch(() => { })
         await db.collection('user').updateOne(
             { _id: foundUser._id },
-            {
-                $unset: {
-                    profilePicture: '',
-                    profilePicturePublicId: ''
-                },
-                $set: { updatedAt: new Date() }
-            }
+            { $unset: { profilePicture: '', profilePicturePublicId: '' }, $set: { updatedAt: new Date() } }
         )
 
-        logAudit('PROFILE_PICTURE_DELETED', {
-            userId: user.userId,
-            userEmail: user.email,
-            targetEmail: email,
-            deletedPublicId: foundUser.profilePicturePublicId
-        }, req)
-
-        return NextResponse.json({ message: 'Profile picture deleted successfully' }, { status: 200 })
+        logAudit('PROFILE_PICTURE_DELETED', { userId: user.userId, targetEmail: email }, req)
+        return NextResponse.json({ success: true, message: 'Profile picture deleted successfully' })
 
     } catch (err) {
-        console.error('❌ Error deleting profile picture:', err)
-        console.error('❌ Stack trace:', err.stack)
+        console.error('❌ DELETE /api/user error:', err.message)
         return NextResponse.json({
             error: 'Failed to delete profile picture',
             details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
         }, { status: 500 })
     }
 }
-
