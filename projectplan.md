@@ -744,7 +744,7 @@ Custom webpack loader that adds `data-lov-id` attributes to JSX elements for dev
 
 ---
 
-## 📝 State Management
+## 📝 State Management.
 
 ### Context Providers
 1. **AuthContext** (`Provider/AuthProvider.jsx`)
