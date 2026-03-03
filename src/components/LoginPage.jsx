@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
+import Swal from "sweetalert2";
 
 function GoogleIcon() {
   return (
@@ -15,6 +19,78 @@ function GoogleIcon() {
 }
 
 export default function LoginPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { handleGoogleSignIn, loading } = useAuth()
+  const [signInLoading, setSignInLoading] = useState(false)
+
+  const redirect = searchParams.get('redirect') || '/'
+
+  const handleGoogleLogin = async () => {
+    setSignInLoading(true)
+    try {
+      const result = await handleGoogleSignIn()
+      
+      if (result.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Welcome Back!',
+          text: 'You have successfully signed in',
+          timer: 1500,
+          showConfirmButton: false,
+          confirmButtonColor: '#4C1D95',
+        })
+        
+        // Redirect after successful login
+        setTimeout(() => {
+          router.push(redirect)
+        }, 1500)
+      } else {
+        // Check for specific Firebase errors
+        let errorMessage = result.error || 'Failed to sign in with Google'
+        
+        if (result.error.includes('operation-not-allowed')) {
+          errorMessage = 'Google Sign-In is not enabled. Please contact the administrator.'
+        } else if (result.error.includes('popup-closed-by-user')) {
+          errorMessage = 'Sign-in was cancelled'
+        } else if (result.error.includes('network-request-failed')) {
+          errorMessage = 'Network error. Please check your internet connection'
+        }
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Login Failed',
+          text: errorMessage,
+          confirmButtonColor: '#4C1D95',
+        })
+      }
+    } catch (error) {
+      console.error('Google login error:', error)
+      
+      let errorMessage = 'An error occurred during sign in'
+      
+      // Handle Firebase error codes
+      if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = 'Google Sign-In is not enabled in Firebase. Please contact the administrator.'
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Sign-in was cancelled'
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your internet connection'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Failed',
+        text: errorMessage,
+        confirmButtonColor: '#4C1D95',
+      })
+    } finally {
+      setSignInLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-offwhite flex items-center justify-center px-4">
       <motion.div
@@ -39,9 +115,19 @@ export default function LoginPage() {
         </p>
 
         {/* Google button */}
-        <button className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3.5 px-4 text-sm font-semibold text-text-primary hover:bg-gray-50 hover:border-gray-300 transition-colors">
-          <GoogleIcon />
-          Continue with Google
+        <button 
+          onClick={handleGoogleLogin}
+          disabled={signInLoading || loading}
+          className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3.5 px-4 text-sm font-semibold text-text-primary hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {signInLoading || loading ? (
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-dark"></div>
+          ) : (
+            <>
+              <GoogleIcon />
+              Continue with Google
+            </>
+          )}
         </button>
 
         <div className="flex items-center gap-3 my-6">

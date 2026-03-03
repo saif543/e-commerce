@@ -1,0 +1,465 @@
+// Product API - Firebase Token Authentication
+// Full CRUD for gadgets/electronics products with enterprise security
+import { NextResponse } from 'next/server'
+import { verifyApiToken, requireRole, createAuthError, checkRateLimit } from '@/lib/auth'
+import { uploadImage, deleteMultipleImages, deleteImage } from '@/lib/cloudinary'
+import clientPromise from '@/lib/mongodb'
+
+// 🔐 SECURITY CONSTANTS
+const MAX_IMAGE_SIZE_ADMIN = 100 * 1024 * 1024
+const MAX_IMAGE_SIZE_USER = 5 * 1024 * 1024
+const MAX_IMAGES_PER_UPLOAD = 15
+const MAX_REQUEST_BODY_SIZE = 100_000
+const MAX_SEARCH_LENGTH = 100
+const MAX_DESCRIPTION_WORDS = 3000
+const MAX_DESCRIPTION_IMAGES = 10
+
+// IP-based upload tracking
+const uploadTracker = new Map()
+const UPLOAD_LIMIT_PER_HOUR = 50
+const UPLOAD_WINDOW_MS = 60 * 60 * 1000
+
+// Write rate limit
+const writeRequestCounts = new Map()
+const WRITE_RATE_LIMIT = 30
+const WRITE_WINDOW_MS = 15 * 60 * 1000
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+const VALID_STOCK = ['in_stock', 'out_of_stock', 'limited']
+const VALID_CONDITIONS = ['new', 'refurbished', 'open_box']
+
+// ── Helpers ──
+function getClientIP(req) {
+    return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown'
+}
+
+function checkUploadRateLimit(req) {
+    const ip = getClientIP(req)
+    const now = Date.now()
+    const tracker = uploadTracker.get(ip) || { count: 0, windowStart: now }
+    if (tracker.windowStart < now - UPLOAD_WINDOW_MS) { tracker.count = 1; tracker.windowStart = now }
+    else tracker.count++
+    uploadTracker.set(ip, tracker)
+    if (tracker.count > UPLOAD_LIMIT_PER_HOUR) throw new Error('Upload rate limit exceeded')
+}
+
+function checkWriteRateLimit(req) {
+    const ip = getClientIP(req)
+    const now = Date.now()
+    const current = writeRequestCounts.get(ip) || { count: 0, timestamp: now }
+    if (current.timestamp < now - WRITE_WINDOW_MS) { current.count = 1; current.timestamp = now }
+    else current.count++
+    writeRequestCounts.set(ip, current)
+    if (current.count > WRITE_RATE_LIMIT) throw new Error('Too many write requests')
+}
+
+function sanitizeString(value, maxLength = 500) {
+    if (typeof value !== 'string') return null
+    return value.trim()
+        .replace(/<[^>]*>/g, '')
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+        .slice(0, maxLength)
+}
+
+function countWords(str) {
+    return str ? str.trim().split(/\s+/).filter(Boolean).length : 0
+}
+
+function isValidPrice(price) {
+    return typeof price === 'number' && isFinite(price) && price >= 0
+}
+
+async function logAudit(action, data, req) {
+    setImmediate(async () => {
+        try {
+            const client = await clientPromise
+            await client.db('ECOM').collection('audit_logs').insertOne({
+                action, ...data, timestamp: new Date(), ipAddress: getClientIP(req),
+            })
+        } catch (err) { console.error('Audit log error:', err) }
+    })
+}
+
+// ── GET: List / Filter / Single Product (Public) ──
+export async function GET(req) {
+    try {
+        await checkRateLimit(req)
+        const { searchParams } = new URL(req.url)
+
+        let id = sanitizeString(searchParams.get('id') || '', 100)
+        let search = sanitizeString(searchParams.get('search') || '', MAX_SEARCH_LENGTH)
+        let category = sanitizeString(searchParams.get('category') || '', 200)
+        let subcategory = sanitizeString(searchParams.get('subcategory') || '', 200)
+        let brand = sanitizeString(searchParams.get('brand') || '', 100)
+        let minPrice = searchParams.get('minPrice')
+        let maxPrice = searchParams.get('maxPrice')
+        let isFeatured = searchParams.get('isFeatured')
+        let isTrending = searchParams.get('isTrending')
+        let page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+        let limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
+
+        if (search && search.length > MAX_SEARCH_LENGTH) {
+            return NextResponse.json({ error: `Search query too long (max ${MAX_SEARCH_LENGTH} chars)` }, { status: 400 })
+        }
+
+        const client = await clientPromise
+        const db = client.db('ECOM')
+        const { ObjectId } = await import('mongodb')
+
+        // Single product by _id
+        if (id) {
+            if (!id || id.length !== 24 || !/^[a-f0-9]+$/i.test(id)) {
+                return NextResponse.json({ error: 'Invalid product id' }, { status: 400 })
+            }
+            let oid
+            try { oid = new ObjectId(id) } catch {
+                return NextResponse.json({ error: 'Invalid product id format' }, { status: 400 })
+            }
+            const product = await db.collection('products').findOne({ _id: oid, isActive: true })
+            if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+            return NextResponse.json({ product })
+        }
+
+        // Build filter
+        const query = { isActive: true }
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } },
+                { tags: { $in: [new RegExp(search, 'i')] } },
+            ]
+        }
+        if (category) query.category = { $regex: `^${category}$`, $options: 'i' }
+        if (subcategory) query.subcategory = { $regex: `^${subcategory}$`, $options: 'i' }
+        if (brand) query.brand = { $regex: `^${brand}$`, $options: 'i' }
+        if (isFeatured === 'true') query.isFeatured = true
+        if (isTrending === 'true') query.isTrending = true
+
+        if (minPrice || maxPrice) {
+            query.price = {}
+            const min = parseFloat(minPrice); const max = parseFloat(maxPrice)
+            if (!isNaN(min) && min >= 0) query.price.$gte = min
+            if (!isNaN(max) && max >= 0) query.price.$lte = max
+        }
+
+        const skip = (page - 1) * limit
+        const [products, total] = await Promise.all([
+            db.collection('products').find(query).skip(skip).limit(limit).sort({ createdAt: -1 }).toArray(),
+            db.collection('products').countDocuments(query),
+        ])
+
+        return NextResponse.json({ products, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } })
+
+    } catch (err) {
+        console.error('❌ GET /api/product error:', err)
+        return NextResponse.json({
+            error: 'Failed to fetch products',
+            details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
+        }, { status: 500 })
+    }
+}
+
+// ── POST: Create Product (Admin only) ──
+export async function POST(req) {
+    let user = null
+    try {
+        await checkRateLimit(req)
+        checkWriteRateLimit(req)
+        user = await verifyApiToken(req)
+        requireRole(user, ['admin'])
+    } catch (authErr) { return createAuthError(authErr.message, authErr.message.includes('rate') ? 429 : 401) }
+
+    try {
+        const contentLength = parseInt(req.headers.get('content-length') || '0', 10)
+        if (contentLength > MAX_REQUEST_BODY_SIZE) return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+
+        const body = await req.json()
+
+        // Required fields
+        if (!body.name || typeof body.name !== 'string' || body.name.trim().length < 2) {
+            return NextResponse.json({ error: 'Product name is required (min 2 chars)' }, { status: 400 })
+        }
+        if (body.price === undefined || !isValidPrice(Number(body.price))) {
+            return NextResponse.json({ error: 'Valid price is required' }, { status: 400 })
+        }
+        if (!body.category || typeof body.category !== 'string' || body.category.trim().length < 1) {
+            return NextResponse.json({ error: 'Category is required' }, { status: 400 })
+        }
+
+        // Sanitize
+        const name = sanitizeString(body.name, 200)
+        const description = sanitizeString(body.description || '', 1000)
+        const longDesc = sanitizeString(body.longDescription || '', 50000)
+        const category = sanitizeString(body.category, 200)     // free text — from admin's dynamic categories
+        const subcategory = sanitizeString(body.subcategory || '', 200)
+        const brand = sanitizeString(body.brand || '', 100)
+        const badge = sanitizeString(body.badge || '', 50)
+        const condition = VALID_CONDITIONS.includes(body.condition) ? body.condition : 'new'
+        const stock = VALID_STOCK.includes(body.stock) ? body.stock : 'in_stock'
+        const price = parseFloat(body.price)
+        const originalPrice = body.originalPrice ? parseFloat(body.originalPrice) : price
+        const discount = body.discount ? Math.min(Math.max(parseFloat(body.discount), 0), 100) : 0
+        const isFeatured = body.isFeatured === true
+        const isTrending = body.isTrending === true
+        const isActive = body.isActive !== false
+
+        if (countWords(longDesc) > MAX_DESCRIPTION_WORDS) {
+            return NextResponse.json({ error: `Long description exceeds ${MAX_DESCRIPTION_WORDS} word limit` }, { status: 400 })
+        }
+
+        const descImageCount = (longDesc.match(/!\[.*?\]\(.*?\)/g) || []).length
+        if (descImageCount > MAX_DESCRIPTION_IMAGES) {
+            return NextResponse.json({ error: `Description can contain at most ${MAX_DESCRIPTION_IMAGES} images` }, { status: 400 })
+        }
+
+        const features = Array.isArray(body.features)
+            ? body.features.map(f => sanitizeString(f, 300)).filter(Boolean).slice(0, 50) : []
+        const tags = Array.isArray(body.tags)
+            ? body.tags.map(t => sanitizeString(t, 50)).filter(Boolean).slice(0, 20) : []
+        const specifications = body.specifications && typeof body.specifications === 'object' && !Array.isArray(body.specifications)
+            ? Object.fromEntries(
+                Object.entries(body.specifications).slice(0, 50)
+                    .map(([k, v]) => [sanitizeString(k, 100), sanitizeString(String(v), 300)])
+                    .filter(([k]) => k)
+            ) : {}
+
+        const client = await clientPromise
+        const db = client.db('ECOM')
+
+        const newProduct = {
+            name, description, longDescription: longDesc,
+            category, subcategory, brand, badge,
+            condition, stock, price, originalPrice, discount,
+            features, tags, specifications,
+            images: [],  // Added via PUT ?action=upload-images
+            isFeatured, isTrending, isActive,
+            createdBy: user.dbUserId || user.userId,
+            createdAt: new Date(), updatedAt: new Date(),
+        }
+
+        const result = await db.collection('products').insertOne(newProduct)
+        const created = await db.collection('products').findOne({ _id: result.insertedId })
+
+        logAudit('PRODUCT_CREATED', { userId: user.userId, userEmail: user.email, productId: result.insertedId.toString(), productName: name }, req)
+        return NextResponse.json({ message: 'Product created successfully', product: created }, { status: 201 })
+
+    } catch (err) {
+        console.error('❌ POST /api/product error:', err)
+        return NextResponse.json({
+            error: 'Failed to create product',
+            details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
+        }, { status: 500 })
+    }
+}
+
+// ── PUT: Update Product or Upload Images (Admin only) ──
+export async function PUT(req) {
+    let user = null
+    try {
+        await checkRateLimit(req)
+        user = await verifyApiToken(req)
+        requireRole(user, ['admin'])
+    } catch (authErr) { return createAuthError(authErr.message, authErr.message.includes('rate') ? 429 : 401) }
+
+    try {
+        const { searchParams } = new URL(req.url)
+        const action = searchParams.get('action')
+        const { ObjectId } = await import('mongodb')
+
+        // ── Upload Images ──
+        if (action === 'upload-images') {
+            checkUploadRateLimit(req)
+            const formData = await req.formData()
+            const productId = sanitizeString(formData.get('productId') || '', 100)
+            if (!productId) return NextResponse.json({ error: 'productId is required' }, { status: 400 })
+
+            let oid
+            try { oid = new ObjectId(productId) } catch {
+                return NextResponse.json({ error: 'Invalid productId' }, { status: 400 })
+            }
+
+            const files = formData.getAll('files')
+            if (!files?.length) return NextResponse.json({ error: 'At least one file is required' }, { status: 400 })
+            if (files.length > MAX_IMAGES_PER_UPLOAD) {
+                return NextResponse.json({ error: `Max ${MAX_IMAGES_PER_UPLOAD} images per upload` }, { status: 400 })
+            }
+
+            const maxSize = MAX_IMAGE_SIZE_ADMIN // admin only endpoint
+            for (const file of files) {
+                if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+                    return NextResponse.json({ error: `Invalid file type: ${file.type}. Allowed: JPEG, PNG, WebP` }, { status: 400 })
+                }
+                if (file.size > maxSize) {
+                    return NextResponse.json({ error: `File "${file.name}" exceeds 100MB limit` }, { status: 400 })
+                }
+            }
+
+            const client = await clientPromise
+            const db = client.db('ECOM')
+            const product = await db.collection('products').findOne({ _id: oid })
+            if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+
+            if ((product.images?.length || 0) + files.length > MAX_IMAGES_PER_UPLOAD) {
+                return NextResponse.json({ error: `Product already has ${product.images?.length} images. Max ${MAX_IMAGES_PER_UPLOAD} total.` }, { status: 400 })
+            }
+
+            const isPrimarySet = (product.images?.length || 0) > 0
+            const uploadedImages = []
+            for (let i = 0; i < files.length; i++) {
+                const buffer = Buffer.from(await files[i].arrayBuffer())
+                const result = await uploadImage(buffer, {
+                    folder: 'ecom/products',
+                    publicId: `product_${productId}_${Date.now()}_${i}`,
+                    transformation: [{ width: 1200, height: 1200, crop: 'limit' }],
+                })
+                uploadedImages.push({ url: result.url, publicId: result.publicId, isPrimary: i === 0 && !isPrimarySet })
+            }
+
+            await db.collection('products').updateOne(
+                { _id: oid },
+                { $push: { images: { $each: uploadedImages } }, $set: { updatedAt: new Date() } }
+            )
+            const updated = await db.collection('products').findOne({ _id: oid })
+
+            logAudit('PRODUCT_IMAGES_UPLOADED', { userId: user.userId, userEmail: user.email, productId, count: uploadedImages.length }, req)
+            return NextResponse.json({ message: 'Images uploaded successfully', product: updated })
+        }
+
+        // ── Delete single image ──
+        if (action === 'delete-image') {
+            const body = await req.json()
+            const productId = sanitizeString(body.productId || '', 100)
+            const publicId = sanitizeString(body.publicId || '', 300)
+            if (!productId || !publicId) return NextResponse.json({ error: 'productId and publicId are required' }, { status: 400 })
+
+            let oid
+            try { oid = new ObjectId(productId) } catch {
+                return NextResponse.json({ error: 'Invalid productId' }, { status: 400 })
+            }
+
+            await deleteImage(publicId)
+            const client = await clientPromise
+            const db = client.db('ECOM')
+            await db.collection('products').updateOne(
+                { _id: oid },
+                { $pull: { images: { publicId } }, $set: { updatedAt: new Date() } }
+            )
+            logAudit('PRODUCT_IMAGE_DELETED', { userId: user.userId, userEmail: user.email, productId, publicId }, req)
+            return NextResponse.json({ message: 'Image deleted successfully' })
+        }
+
+        // ── Standard product update ──
+        const contentLength = parseInt(req.headers.get('content-length') || '0', 10)
+        if (contentLength > MAX_REQUEST_BODY_SIZE) return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+
+        const body = await req.json()
+        const id = sanitizeString(body.id || '', 100)
+        if (!id) return NextResponse.json({ error: 'Product id is required' }, { status: 400 })
+
+        let oid
+        try { oid = new ObjectId(id) } catch {
+            return NextResponse.json({ error: 'Invalid id format' }, { status: 400 })
+        }
+
+        const client = await clientPromise
+        const db = client.db('ECOM')
+        const product = await db.collection('products').findOne({ _id: oid })
+        if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+
+        const updateData = { updatedAt: new Date() }
+        if (body.name !== undefined) updateData.name = sanitizeString(body.name, 200)
+        if (body.description !== undefined) updateData.description = sanitizeString(body.description, 1000)
+        if (body.category !== undefined) updateData.category = sanitizeString(body.category, 200)
+        if (body.subcategory !== undefined) updateData.subcategory = sanitizeString(body.subcategory, 200)
+        if (body.brand !== undefined) updateData.brand = sanitizeString(body.brand, 100)
+        if (body.badge !== undefined) updateData.badge = sanitizeString(body.badge, 50)
+        if (body.condition !== undefined && VALID_CONDITIONS.includes(body.condition)) updateData.condition = body.condition
+        if (body.stock !== undefined && VALID_STOCK.includes(body.stock)) updateData.stock = body.stock
+        if (body.price !== undefined && isValidPrice(Number(body.price))) updateData.price = parseFloat(body.price)
+        if (body.originalPrice !== undefined && isValidPrice(Number(body.originalPrice))) updateData.originalPrice = parseFloat(body.originalPrice)
+        if (body.discount !== undefined) updateData.discount = Math.min(Math.max(parseFloat(body.discount) || 0, 0), 100)
+        if (body.isFeatured !== undefined) updateData.isFeatured = Boolean(body.isFeatured)
+        if (body.isTrending !== undefined) updateData.isTrending = Boolean(body.isTrending)
+        if (body.isActive !== undefined) updateData.isActive = Boolean(body.isActive)
+        if (Array.isArray(body.features)) updateData.features = body.features.map(f => sanitizeString(f, 300)).filter(Boolean).slice(0, 50)
+        if (Array.isArray(body.tags)) updateData.tags = body.tags.map(t => sanitizeString(t, 50)).filter(Boolean).slice(0, 20)
+        if (body.longDescription !== undefined) {
+            const ld = sanitizeString(body.longDescription, 50000)
+            if (countWords(ld) > MAX_DESCRIPTION_WORDS) {
+                return NextResponse.json({ error: `Long description exceeds ${MAX_DESCRIPTION_WORDS} word limit` }, { status: 400 })
+            }
+            updateData.longDescription = ld
+        }
+        if (body.specifications && typeof body.specifications === 'object' && !Array.isArray(body.specifications)) {
+            updateData.specifications = Object.fromEntries(
+                Object.entries(body.specifications).slice(0, 50)
+                    .map(([k, v]) => [sanitizeString(k, 100), sanitizeString(String(v), 300)])
+                    .filter(([k]) => k)
+            )
+        }
+
+        await db.collection('products').updateOne({ _id: oid }, { $set: updateData })
+        const updated = await db.collection('products').findOne({ _id: oid })
+
+        logAudit('PRODUCT_UPDATED', { userId: user.userId, userEmail: user.email, productId: id, updatedFields: Object.keys(updateData) }, req)
+        return NextResponse.json({ message: 'Product updated successfully', product: updated })
+
+    } catch (err) {
+        console.error('❌ PUT /api/product error:', err)
+        return NextResponse.json({
+            error: 'Failed to update product',
+            details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
+        }, { status: 500 })
+    }
+}
+
+// ── DELETE: Soft-delete or hard-delete (Admin only) ──
+export async function DELETE(req) {
+    let user = null
+    try {
+        await checkRateLimit(req)
+        checkWriteRateLimit(req)
+        user = await verifyApiToken(req)
+        requireRole(user, ['admin'])
+    } catch (authErr) { return createAuthError(authErr.message, authErr.message.includes('rate') ? 429 : 401) }
+
+    try {
+        const { searchParams } = new URL(req.url)
+        const id = sanitizeString(searchParams.get('id') || '', 100)
+        const hardDelete = searchParams.get('hard') === 'true'
+
+        if (!id) return NextResponse.json({ error: 'Product id is required' }, { status: 400 })
+
+        const { ObjectId } = await import('mongodb')
+        let oid
+        try { oid = new ObjectId(id) } catch {
+            return NextResponse.json({ error: 'Invalid id format' }, { status: 400 })
+        }
+
+        const client = await clientPromise
+        const db = client.db('ECOM')
+        const product = await db.collection('products').findOne({ _id: oid })
+        if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+
+        if (hardDelete) {
+            if (product.images?.length) {
+                const publicIds = product.images.map(img => img.publicId).filter(Boolean)
+                if (publicIds.length) await deleteMultipleImages(publicIds)
+            }
+            await db.collection('products').deleteOne({ _id: oid })
+            logAudit('PRODUCT_HARD_DELETED', { userId: user.userId, userEmail: user.email, productId: id, name: product.name }, req)
+            return NextResponse.json({ message: 'Product permanently deleted' })
+        }
+
+        await db.collection('products').updateOne({ _id: oid }, { $set: { isActive: false, updatedAt: new Date() } })
+        logAudit('PRODUCT_SOFT_DELETED', { userId: user.userId, userEmail: user.email, productId: id, name: product.name }, req)
+        return NextResponse.json({ message: 'Product deactivated successfully' })
+
+    } catch (err) {
+        console.error('❌ DELETE /api/product error:', err)
+        return NextResponse.json({
+            error: 'Failed to delete product',
+            details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
+        }, { status: 500 })
+    }
+}
