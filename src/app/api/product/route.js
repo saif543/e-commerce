@@ -24,9 +24,9 @@ const writeRequestCounts = new Map()
 const WRITE_RATE_LIMIT = 30
 const WRITE_WINDOW_MS = 15 * 60 * 1000
 
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+const ALLOWED_IMAGE_TYPES = null // All image types are accepted
 const VALID_STOCK = ['in_stock', 'out_of_stock', 'limited']
-const VALID_CONDITIONS = ['new', 'refurbished', 'open_box']
+const VALID_CONDITIONS = ['new', 'refurbished', 'open_box', 'used']
 
 // ── Helpers ──
 function getClientIP(req) {
@@ -80,7 +80,7 @@ async function logAudit(action, data, req) {
     })
 }
 
-// ── GET: List / Filter / Single Product (Public) ──
+// ── GET: List / Filter / Single Product (Public + Admin) ──
 export async function GET(req) {
     try {
         await checkRateLimit(req)
@@ -95,11 +95,24 @@ export async function GET(req) {
         let maxPrice = searchParams.get('maxPrice')
         let isFeatured = searchParams.get('isFeatured')
         let isTrending = searchParams.get('isTrending')
+        let statusFilter = searchParams.get('status')
         let page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
         let limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
 
         if (search && search.length > MAX_SEARCH_LENGTH) {
             return NextResponse.json({ error: `Search query too long (max ${MAX_SEARCH_LENGTH} chars)` }, { status: 400 })
+        }
+
+        // Check if admin is requesting (bypass isActive filter)
+        let isAdminRequest = false
+        const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
+        if (authHeader?.startsWith('Bearer ')) {
+            try {
+                const adminUser = await verifyApiToken(req)
+                if (adminUser.role === 'admin') isAdminRequest = true
+            } catch {
+                // Not admin, continue as public
+            }
         }
 
         const client = await clientPromise
@@ -115,13 +128,15 @@ export async function GET(req) {
             try { oid = new ObjectId(id) } catch {
                 return NextResponse.json({ error: 'Invalid product id format' }, { status: 400 })
             }
-            const product = await db.collection('products').findOne({ _id: oid, isActive: true })
+            const productQuery = isAdminRequest ? { _id: oid } : { _id: oid, isActive: true }
+            const product = await db.collection('products').findOne(productQuery)
             if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
             return NextResponse.json({ product })
         }
 
-        // Build filter
-        const query = { isActive: true }
+        // Build filter — admin sees all products, public sees only active
+        const query = isAdminRequest ? {} : { isActive: true }
+
         if (search) {
             query.$or = [
                 { name: { $regex: search, $options: 'i' } },
@@ -134,6 +149,12 @@ export async function GET(req) {
         if (brand) query.brand = { $regex: `^${brand}$`, $options: 'i' }
         if (isFeatured === 'true') query.isFeatured = true
         if (isTrending === 'true') query.isTrending = true
+
+        // Admin status filter
+        if (isAdminRequest && statusFilter && statusFilter !== 'all') {
+            if (statusFilter === 'active') query.isActive = true
+            else if (statusFilter === 'archived') query.isActive = false
+        }
 
         if (minPrice || maxPrice) {
             query.price = {}
@@ -148,7 +169,12 @@ export async function GET(req) {
             db.collection('products').countDocuments(query),
         ])
 
-        return NextResponse.json({ products, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } })
+        const pages = Math.ceil(total / limit)
+        return NextResponse.json({
+            success: true,
+            products,
+            pagination: { total, page, limit, pages, totalPages: pages }
+        })
 
     } catch (err) {
         console.error('❌ GET /api/product error:', err)
@@ -158,6 +184,7 @@ export async function GET(req) {
         }, { status: 500 })
     }
 }
+
 
 // ── POST: Create Product (Admin only) ──
 export async function POST(req) {
@@ -189,37 +216,55 @@ export async function POST(req) {
         // Sanitize
         const name = sanitizeString(body.name, 200)
         const description = sanitizeString(body.description || '', 1000)
-        const longDesc = sanitizeString(body.longDescription || '', 50000)
         const category = sanitizeString(body.category, 200)     // free text — from admin's dynamic categories
         const subcategory = sanitizeString(body.subcategory || '', 200)
         const brand = sanitizeString(body.brand || '', 100)
-        const badge = sanitizeString(body.badge || '', 50)
         const condition = VALID_CONDITIONS.includes(body.condition) ? body.condition : 'new'
         const stock = VALID_STOCK.includes(body.stock) ? body.stock : 'in_stock'
+        const stockQty = body.stockQty !== undefined ? Math.max(0, parseInt(body.stockQty, 10) || 0) :
+            (body.inventory?.totalStock !== undefined ? Math.max(0, parseInt(body.inventory.totalStock, 10) || 0) : 0)
+        const sku = sanitizeString(body.sku || '', 100)
+        const inventory = body.inventory && typeof body.inventory === 'object' ? {
+            totalStock: stockQty,
+            lowStockThreshold: Math.max(0, parseInt(body.inventory.lowStockThreshold, 10) || 10),
+            trackInventory: body.inventory.trackInventory !== false
+        } : { totalStock: stockQty, lowStockThreshold: 10, trackInventory: true }
+
+        // Pricing:
+        //   price        = regular (selling) price
+        //   originalPrice = cost per item (what admin paid)
+        //   discount     = sale price offered to customer
         const price = parseFloat(body.price)
-        const originalPrice = body.originalPrice ? parseFloat(body.originalPrice) : price
-        const discount = body.discount ? Math.min(Math.max(parseFloat(body.discount), 0), 100) : 0
+        const originalPrice = body.originalPrice !== undefined && isValidPrice(Number(body.originalPrice))
+            ? parseFloat(body.originalPrice) : 0
+        const discount = body.discount !== undefined && isValidPrice(Number(body.discount))
+            ? parseFloat(body.discount) : 0
+
         const isFeatured = body.isFeatured === true
         const isTrending = body.isTrending === true
         const isActive = body.isActive !== false
-
-        if (countWords(longDesc) > MAX_DESCRIPTION_WORDS) {
-            return NextResponse.json({ error: `Long description exceeds ${MAX_DESCRIPTION_WORDS} word limit` }, { status: 400 })
-        }
-
-        const descImageCount = (longDesc.match(/!\[.*?\]\(.*?\)/g) || []).length
-        if (descImageCount > MAX_DESCRIPTION_IMAGES) {
-            return NextResponse.json({ error: `Description can contain at most ${MAX_DESCRIPTION_IMAGES} images` }, { status: 400 })
-        }
+        const status = ['active', 'draft', 'archived'].includes(body.status) ? body.status : (isActive ? 'active' : 'draft')
 
         const features = Array.isArray(body.features)
             ? body.features.map(f => sanitizeString(f, 300)).filter(Boolean).slice(0, 50) : []
-        const tags = Array.isArray(body.tags)
-            ? body.tags.map(t => sanitizeString(t, 50)).filter(Boolean).slice(0, 20) : []
         const specifications = body.specifications && typeof body.specifications === 'object' && !Array.isArray(body.specifications)
             ? Object.fromEntries(
                 Object.entries(body.specifications).slice(0, 50)
-                    .map(([k, v]) => [sanitizeString(k, 100), sanitizeString(String(v), 300)])
+                    .map(([k, v]) => {
+                        if (typeof v === 'object' && !Array.isArray(v)) {
+                            return [sanitizeString(k, 100), Object.fromEntries(
+                                Object.entries(v).map(([sk, sv]) => [sanitizeString(sk, 100), sanitizeString(String(sv), 300)])
+                            )]
+                        }
+                        return [sanitizeString(k, 100), sanitizeString(String(v), 300)]
+                    })
+                    .filter(([k]) => k)
+            ) : {}
+
+        const customFields = body.customFields && typeof body.customFields === 'object' && !Array.isArray(body.customFields)
+            ? Object.fromEntries(
+                Object.entries(body.customFields).slice(0, 30)
+                    .map(([k, v]) => [sanitizeString(k, 100), sanitizeString(String(v), 500)])
                     .filter(([k]) => k)
             ) : {}
 
@@ -227,12 +272,12 @@ export async function POST(req) {
         const db = client.db('ECOM')
 
         const newProduct = {
-            name, description, longDescription: longDesc,
-            category, subcategory, brand, badge,
-            condition, stock, price, originalPrice, discount,
-            features, tags, specifications,
-            images: [],  // Added via PUT ?action=upload-images
-            isFeatured, isTrending, isActive,
+            name, description,
+            category, subcategory, brand, sku,
+            condition, stock, stockQty, inventory, price, originalPrice, discount,
+            features, specifications, customFields,
+            images: [],
+            isFeatured, isTrending, isActive, status,
             createdBy: user.dbUserId || user.userId,
             createdAt: new Date(), updatedAt: new Date(),
         }
@@ -241,7 +286,7 @@ export async function POST(req) {
         const created = await db.collection('products').findOne({ _id: result.insertedId })
 
         logAudit('PRODUCT_CREATED', { userId: user.userId, userEmail: user.email, productId: result.insertedId.toString(), productName: name }, req)
-        return NextResponse.json({ message: 'Product created successfully', product: created }, { status: 201 })
+        return NextResponse.json({ success: true, message: 'Product created successfully', product: created }, { status: 201 })
 
     } catch (err) {
         console.error('❌ POST /api/product error:', err)
@@ -286,9 +331,6 @@ export async function PUT(req) {
 
             const maxSize = MAX_IMAGE_SIZE_ADMIN // admin only endpoint
             for (const file of files) {
-                if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-                    return NextResponse.json({ error: `Invalid file type: ${file.type}. Allowed: JPEG, PNG, WebP` }, { status: 400 })
-                }
                 if (file.size > maxSize) {
                     return NextResponse.json({ error: `File "${file.name}" exceeds 100MB limit` }, { status: 400 })
                 }
@@ -322,7 +364,7 @@ export async function PUT(req) {
             const updated = await db.collection('products').findOne({ _id: oid })
 
             logAudit('PRODUCT_IMAGES_UPLOADED', { userId: user.userId, userEmail: user.email, productId, count: uploadedImages.length }, req)
-            return NextResponse.json({ message: 'Images uploaded successfully', product: updated })
+            return NextResponse.json({ success: true, message: 'Images uploaded successfully', images: uploadedImages, product: updated })
         }
 
         // ── Delete single image ──
@@ -372,28 +414,48 @@ export async function PUT(req) {
         if (body.category !== undefined) updateData.category = sanitizeString(body.category, 200)
         if (body.subcategory !== undefined) updateData.subcategory = sanitizeString(body.subcategory, 200)
         if (body.brand !== undefined) updateData.brand = sanitizeString(body.brand, 100)
-        if (body.badge !== undefined) updateData.badge = sanitizeString(body.badge, 50)
+        if (body.sku !== undefined) updateData.sku = sanitizeString(body.sku || '', 100)
         if (body.condition !== undefined && VALID_CONDITIONS.includes(body.condition)) updateData.condition = body.condition
         if (body.stock !== undefined && VALID_STOCK.includes(body.stock)) updateData.stock = body.stock
+        if (body.stockQty !== undefined) updateData.stockQty = Math.max(0, parseInt(body.stockQty, 10) || 0)
+        if (body.inventory !== undefined && typeof body.inventory === 'object') {
+            const sqty = body.inventory.totalStock !== undefined ? Math.max(0, parseInt(body.inventory.totalStock, 10) || 0) : (updateData.stockQty || 0)
+            updateData.inventory = {
+                totalStock: sqty,
+                lowStockThreshold: Math.max(0, parseInt(body.inventory.lowStockThreshold, 10) || 10),
+                trackInventory: body.inventory.trackInventory !== false
+            }
+            updateData.stockQty = sqty
+        }
+        // Pricing: price=regular, originalPrice=costPerItem, discount=salePrice
         if (body.price !== undefined && isValidPrice(Number(body.price))) updateData.price = parseFloat(body.price)
         if (body.originalPrice !== undefined && isValidPrice(Number(body.originalPrice))) updateData.originalPrice = parseFloat(body.originalPrice)
-        if (body.discount !== undefined) updateData.discount = Math.min(Math.max(parseFloat(body.discount) || 0, 0), 100)
+        if (body.discount !== undefined && isValidPrice(Number(body.discount))) updateData.discount = parseFloat(body.discount)
         if (body.isFeatured !== undefined) updateData.isFeatured = Boolean(body.isFeatured)
         if (body.isTrending !== undefined) updateData.isTrending = Boolean(body.isTrending)
         if (body.isActive !== undefined) updateData.isActive = Boolean(body.isActive)
-        if (Array.isArray(body.features)) updateData.features = body.features.map(f => sanitizeString(f, 300)).filter(Boolean).slice(0, 50)
-        if (Array.isArray(body.tags)) updateData.tags = body.tags.map(t => sanitizeString(t, 50)).filter(Boolean).slice(0, 20)
-        if (body.longDescription !== undefined) {
-            const ld = sanitizeString(body.longDescription, 50000)
-            if (countWords(ld) > MAX_DESCRIPTION_WORDS) {
-                return NextResponse.json({ error: `Long description exceeds ${MAX_DESCRIPTION_WORDS} word limit` }, { status: 400 })
-            }
-            updateData.longDescription = ld
+        if (body.status !== undefined && ['active', 'draft', 'archived'].includes(body.status)) {
+            updateData.status = body.status
+        }
+        if (body.features !== undefined && Array.isArray(body.features)) updateData.features = body.features.map(f => sanitizeString(f, 300)).filter(Boolean).slice(0, 50)
+        if (body.customFields !== undefined && typeof body.customFields === 'object' && !Array.isArray(body.customFields)) {
+            updateData.customFields = Object.fromEntries(
+                Object.entries(body.customFields).slice(0, 30)
+                    .map(([k, v]) => [sanitizeString(k, 100), sanitizeString(String(v), 500)])
+                    .filter(([k]) => k)
+            )
         }
         if (body.specifications && typeof body.specifications === 'object' && !Array.isArray(body.specifications)) {
             updateData.specifications = Object.fromEntries(
                 Object.entries(body.specifications).slice(0, 50)
-                    .map(([k, v]) => [sanitizeString(k, 100), sanitizeString(String(v), 300)])
+                    .map(([k, v]) => {
+                        if (typeof v === 'object' && !Array.isArray(v)) {
+                            return [sanitizeString(k, 100), Object.fromEntries(
+                                Object.entries(v).map(([sk, sv]) => [sanitizeString(sk, 100), sanitizeString(String(sv), 300)])
+                            )]
+                        }
+                        return [sanitizeString(k, 100), sanitizeString(String(v), 300)]
+                    })
                     .filter(([k]) => k)
             )
         }
@@ -402,7 +464,7 @@ export async function PUT(req) {
         const updated = await db.collection('products').findOne({ _id: oid })
 
         logAudit('PRODUCT_UPDATED', { userId: user.userId, userEmail: user.email, productId: id, updatedFields: Object.keys(updateData) }, req)
-        return NextResponse.json({ message: 'Product updated successfully', product: updated })
+        return NextResponse.json({ success: true, message: 'Product updated successfully', product: updated })
 
     } catch (err) {
         console.error('❌ PUT /api/product error:', err)

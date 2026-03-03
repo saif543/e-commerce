@@ -26,7 +26,7 @@ const writeRequestCounts = new Map()
 const WRITE_RATE_LIMIT = 20
 const WRITE_WINDOW_MS = 15 * 60 * 1000
 
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+const ALLOWED_IMAGE_TYPES = null // All image types accepted
 
 // ============================================================
 // 🛡️ SECURITY HELPERS
@@ -107,7 +107,7 @@ export async function GET(req) {
         }
 
         const sliders = await db.collection('sliders').find(query).sort({ order: 1 }).toArray()
-        return NextResponse.json({ sliders })
+        return NextResponse.json({ success: true, slides: sliders })
 
     } catch (err) {
         console.error('❌ GET /api/slider error:', err)
@@ -119,9 +119,130 @@ export async function GET(req) {
 }
 
 // ============================================================
-// ➕ POST — Create slider with image upload (Admin only)
+// ➕ POST — Create/Update/Reorder slider data (Admin only, JSON body)
 // ============================================================
 export async function POST(req) {
+    let user = null
+    try {
+        await checkRateLimit(req)
+        checkWriteRateLimit(req)
+        user = await verifyApiToken(req)
+        requireRole(user, ['admin'])
+    } catch (authErr) {
+        return createAuthError(authErr.message, authErr.message.includes('rate') ? 429 : 401)
+    }
+
+    try {
+        const contentLength = parseInt(req.headers.get('content-length') || '0', 10)
+        if (contentLength > 50_000) {
+            return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+        }
+
+        const body = await req.json()
+        const { action, slideData, id, slides: slidesOrder } = body
+
+        const client = await clientPromise
+        const db = client.db('ECOM')
+
+        // ── Reorder ──
+        if (action === 'reorder') {
+            if (!Array.isArray(slidesOrder)) {
+                return NextResponse.json({ error: 'slides array is required for reorder' }, { status: 400 })
+            }
+            for (const item of slidesOrder) {
+                if (!item.id) continue
+                await db.collection('sliders').updateOne(
+                    { id: item.id },
+                    { $set: { order: item.order, updatedAt: new Date() } }
+                )
+            }
+            return NextResponse.json({ success: true, message: 'Slides reordered successfully' })
+        }
+
+        // ── Create ──
+        if (action === 'create') {
+            if (!slideData) {
+                return NextResponse.json({ error: 'slideData is required' }, { status: 400 })
+            }
+
+            const newSlide = {
+                id: slideData.id || `slide-${Date.now()}`,
+                title: sanitizeString(slideData.title || '', MAX_TITLE_LENGTH) || '--',
+                subtitle: sanitizeString(slideData.subtitle || '', MAX_SUBTITLE_LENGTH) || '--',
+                description: sanitizeString(slideData.description || '', 500),
+                buttonText: sanitizeString(slideData.buttonText || '', MAX_CTA_TEXT_LENGTH),
+                link: sanitizeString(slideData.link || '', MAX_CTA_LINK_LENGTH),
+                alignment: ['left', 'center', 'right'].includes(slideData.alignment) ? slideData.alignment : 'center',
+                alt: sanitizeString(slideData.alt || '', 200),
+                isActive: slideData.isActive !== false,
+                titleSize: Number(slideData.titleSize) || 48,
+                subtitleSize: Number(slideData.subtitleSize) || 20,
+                descriptionSize: Number(slideData.descriptionSize) || 16,
+                buttonSize: Number(slideData.buttonSize) || 14,
+                image: null,
+                order: 0,
+                createdBy: user.dbUserId || user.userId,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            }
+
+            // Set order to be last
+            const count = await db.collection('sliders').countDocuments()
+            newSlide.order = count
+
+            const result = await db.collection('sliders').insertOne(newSlide)
+            const created = await db.collection('sliders').findOne({ _id: result.insertedId })
+
+            logAudit('SLIDER_CREATED', { userId: user.userId, slideId: newSlide.id }, req)
+            return NextResponse.json({ success: true, message: 'Slide created successfully', slide: created }, { status: 201 })
+        }
+
+        // ── Update (slide data only, image handled by PUT) ──
+        if (action === 'update') {
+            const slideId = id || slideData?.id
+            if (!slideId) {
+                return NextResponse.json({ error: 'Slide id is required for update' }, { status: 400 })
+            }
+
+            const updateData = { updatedAt: new Date() }
+            if (slideData) {
+                if (slideData.title !== undefined) updateData.title = sanitizeString(slideData.title, MAX_TITLE_LENGTH) || '--'
+                if (slideData.subtitle !== undefined) updateData.subtitle = sanitizeString(slideData.subtitle, MAX_SUBTITLE_LENGTH) || '--'
+                if (slideData.description !== undefined) updateData.description = sanitizeString(slideData.description, 500)
+                if (slideData.buttonText !== undefined) updateData.buttonText = sanitizeString(slideData.buttonText, MAX_CTA_TEXT_LENGTH)
+                if (slideData.link !== undefined) updateData.link = sanitizeString(slideData.link, MAX_CTA_LINK_LENGTH)
+                if (slideData.alignment !== undefined) updateData.alignment = ['left', 'center', 'right'].includes(slideData.alignment) ? slideData.alignment : 'center'
+                if (slideData.alt !== undefined) updateData.alt = sanitizeString(slideData.alt, 200)
+                if (slideData.isActive !== undefined) updateData.isActive = Boolean(slideData.isActive)
+                if (slideData.titleSize !== undefined) updateData.titleSize = Number(slideData.titleSize)
+                if (slideData.subtitleSize !== undefined) updateData.subtitleSize = Number(slideData.subtitleSize)
+                if (slideData.descriptionSize !== undefined) updateData.descriptionSize = Number(slideData.descriptionSize)
+                if (slideData.buttonSize !== undefined) updateData.buttonSize = Number(slideData.buttonSize)
+            }
+
+            await db.collection('sliders').updateOne({ id: slideId }, { $set: updateData })
+            const updated = await db.collection('sliders').findOne({ id: slideId })
+
+            logAudit('SLIDER_UPDATED', { userId: user.userId, slideId }, req)
+            return NextResponse.json({ success: true, message: 'Slide updated successfully', slide: updated })
+        }
+
+        return NextResponse.json({ error: 'Invalid action. Use: create, update, or reorder' }, { status: 400 })
+
+    } catch (err) {
+        console.error('❌ POST /api/slider error:', err)
+        return NextResponse.json({
+            success: false,
+            error: 'Failed to create slider',
+            details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
+        }, { status: 500 })
+    }
+}
+
+// ============================================================
+// ✏️ PUT — Upload/replace slider image (Admin only, FormData)
+// ============================================================
+export async function PUT(req) {
     let user = null
     try {
         await checkRateLimit(req)
@@ -135,171 +256,63 @@ export async function POST(req) {
 
     try {
         const formData = await req.formData()
+        // Accept both 'slideId' (what SliderManager sends) and 'id' (legacy)
+        const slideId = formData.get('slideId') || formData.get('id')
         const file = formData.get('image')
-        const title = sanitizeString(formData.get('title') || '', MAX_TITLE_LENGTH)
-        const subtitle = sanitizeString(formData.get('subtitle') || '', MAX_SUBTITLE_LENGTH)
-        const ctaText = sanitizeString(formData.get('ctaText') || '', MAX_CTA_TEXT_LENGTH)
-        const ctaLink = sanitizeString(formData.get('ctaLink') || '', MAX_CTA_LINK_LENGTH)
-        const order = parseInt(formData.get('order') || '0', 10)
-        const isActive = formData.get('isActive') !== 'false'
 
-        // Validations
-        if (!title) return NextResponse.json({ error: 'Slide title is required' }, { status: 400 })
-        if (!file) return NextResponse.json({ error: 'Slide image is required' }, { status: 400 })
-        if (!isValidUrl(ctaLink)) return NextResponse.json({ error: 'Invalid CTA link URL' }, { status: 400 })
-        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-            return NextResponse.json({ error: 'Invalid image type. Allowed: JPEG, PNG, WebP' }, { status: 400 })
-        }
+        if (!slideId) return NextResponse.json({ error: 'slideId is required' }, { status: 400 })
+        if (!file) return NextResponse.json({ error: 'image file is required' }, { status: 400 })
+
         const maxSize = user.role === 'admin' ? MAX_IMAGE_SIZE_ADMIN : MAX_IMAGE_SIZE_USER
         if (file.size > maxSize) {
             return NextResponse.json({ error: `Image too large (max ${user.role === 'admin' ? '100MB' : '5MB'})` }, { status: 400 })
         }
 
-        // Upload to Cloudinary
+        const client = await clientPromise
+        const db = client.db('ECOM')
+
+        // Look up by string 'id' field (not MongoDB _id)
+        const slider = await db.collection('sliders').findOne({ id: slideId })
+        if (!slider) return NextResponse.json({ error: 'Slide not found' }, { status: 404 })
+
+        // Delete old Cloudinary image if exists
+        if (slider.image?.publicId) {
+            await deleteImage(slider.image.publicId)
+        }
+
+        // Upload new image (all types accepted)
         const buffer = Buffer.from(await file.arrayBuffer())
         const uploaded = await uploadImage(buffer, {
             folder: 'ecom/sliders',
-            publicId: `slider_${Date.now()}`,
+            publicId: `slider_${slideId}_${Date.now()}`,
             transformation: [{ width: 1920, height: 800, crop: 'fill' }],
         })
 
-        const client = await clientPromise
-        const db = client.db('ECOM')
-        const newSlider = {
-            title, subtitle, ctaText, ctaLink,
-            image: { url: uploaded.url, publicId: uploaded.publicId },
-            order: isNaN(order) ? 0 : order,
-            isActive,
-            createdBy: user.dbUserId || user.userId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        }
+        const imageUrl = uploaded.secure_url || uploaded.url
 
-        const result = await db.collection('sliders').insertOne(newSlider)
-        const created = await db.collection('sliders').findOne({ _id: result.insertedId })
+        await db.collection('sliders').updateOne(
+            { id: slideId },
+            { $set: { image: imageUrl, imagePublicId: uploaded.publicId, updatedAt: new Date() } }
+        )
 
-        logAudit('SLIDER_CREATED', { userId: user.userId, userEmail: user.email, sliderId: result.insertedId.toString() }, req)
-        return NextResponse.json({ message: 'Slider created successfully', slider: created }, { status: 201 })
+        const updated = await db.collection('sliders').findOne({ id: slideId })
 
-    } catch (err) {
-        console.error('❌ POST /api/slider error:', err)
-        return NextResponse.json({
-            error: 'Failed to create slider',
-            details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
-        }, { status: 500 })
-    }
-}
-
-// ============================================================
-// ✏️ PUT — Update slider text, order, or image (Admin only)
-// ============================================================
-export async function PUT(req) {
-    let user = null
-    try {
-        await checkRateLimit(req)
-        checkWriteRateLimit(req)
-        user = await verifyApiToken(req)
-        requireRole(user, ['admin'])
-    } catch (authErr) {
-        return createAuthError(authErr.message, authErr.message.includes('rate') ? 429 : 401)
-    }
-
-    try {
-        const { ObjectId } = await import('mongodb')
-        const contentType = req.headers.get('content-type') || ''
-        const isFormData = contentType.includes('multipart/form-data')
-
-        let id, updateData = {}
-
-        if (isFormData) {
-            // Image replacement request
-            checkUploadRateLimit(req)
-            const formData = await req.formData()
-            id = formData.get('id')
-            const file = formData.get('image')
-
-            if (!id) return NextResponse.json({ error: 'Slider id is required' }, { status: 400 })
-
-            if (formData.get('title')) updateData.title = sanitizeString(formData.get('title'), MAX_TITLE_LENGTH)
-            if (formData.get('subtitle')) updateData.subtitle = sanitizeString(formData.get('subtitle'), MAX_SUBTITLE_LENGTH)
-            if (formData.get('ctaText')) updateData.ctaText = sanitizeString(formData.get('ctaText'), MAX_CTA_TEXT_LENGTH)
-            if (formData.get('ctaLink')) updateData.ctaLink = sanitizeString(formData.get('ctaLink'), MAX_CTA_LINK_LENGTH)
-            if (formData.get('order') !== null) updateData.order = parseInt(formData.get('order'), 10)
-            if (formData.get('isActive') !== null) updateData.isActive = formData.get('isActive') !== 'false'
-
-            if (file) {
-                if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-                    return NextResponse.json({ error: 'Invalid image type' }, { status: 400 })
-                }
-                const maxSize = user.role === 'admin' ? MAX_IMAGE_SIZE_ADMIN : MAX_IMAGE_SIZE_USER
-                if (file.size > maxSize) {
-                    return NextResponse.json({ error: 'Image too large' }, { status: 400 })
-                }
-                const client = await clientPromise
-                const db = client.db('ECOM')
-                let oid
-                try { oid = new ObjectId(sanitizeString(id, 100)) } catch {
-                    return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
-                }
-                const slider = await db.collection('sliders').findOne({ _id: oid })
-                if (slider?.image?.publicId) await deleteImage(slider.image.publicId)
-
-                const buffer = Buffer.from(await file.arrayBuffer())
-                const uploaded = await uploadImage(buffer, {
-                    folder: 'ecom/sliders',
-                    publicId: `slider_${id}_${Date.now()}`,
-                    transformation: [{ width: 1920, height: 800, crop: 'fill' }],
-                })
-                updateData.image = { url: uploaded.url, publicId: uploaded.publicId }
-            }
-        } else {
-            const contentLength = parseInt(req.headers.get('content-length') || '0', 10)
-            if (contentLength > MAX_REQUEST_BODY_SIZE) {
-                return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
-            }
-            const body = await req.json()
-            id = body.id
-            if (!id) return NextResponse.json({ error: 'Slider id is required' }, { status: 400 })
-            if (body.title !== undefined) updateData.title = sanitizeString(body.title, MAX_TITLE_LENGTH)
-            if (body.subtitle !== undefined) updateData.subtitle = sanitizeString(body.subtitle, MAX_SUBTITLE_LENGTH)
-            if (body.ctaText !== undefined) updateData.ctaText = sanitizeString(body.ctaText, MAX_CTA_TEXT_LENGTH)
-            if (body.ctaLink !== undefined) {
-                if (!isValidUrl(body.ctaLink)) return NextResponse.json({ error: 'Invalid CTA link URL' }, { status: 400 })
-                updateData.ctaLink = sanitizeString(body.ctaLink, MAX_CTA_LINK_LENGTH)
-            }
-            if (body.order !== undefined) updateData.order = parseInt(body.order, 10)
-            if (body.isActive !== undefined) updateData.isActive = Boolean(body.isActive)
-        }
-
-        updateData.updatedAt = new Date()
-
-        const client = await clientPromise
-        const db = client.db('ECOM')
-        let oid
-        try { oid = new ObjectId(sanitizeString(id, 100)) } catch {
-            return NextResponse.json({ error: 'Invalid id format' }, { status: 400 })
-        }
-
-        const slider = await db.collection('sliders').findOne({ _id: oid })
-        if (!slider) return NextResponse.json({ error: 'Slider not found' }, { status: 404 })
-
-        await db.collection('sliders').updateOne({ _id: oid }, { $set: updateData })
-        const updated = await db.collection('sliders').findOne({ _id: oid })
-
-        logAudit('SLIDER_UPDATED', { userId: user.userId, userEmail: user.email, sliderId: id, updatedFields: Object.keys(updateData) }, req)
-        return NextResponse.json({ message: 'Slider updated successfully', slider: updated }, { status: 200 })
+        logAudit('SLIDER_IMAGE_UPLOADED', { userId: user.userId, slideId }, req)
+        return NextResponse.json({ success: true, message: 'Slide image uploaded successfully', slide: updated })
 
     } catch (err) {
         console.error('❌ PUT /api/slider error:', err)
         return NextResponse.json({
-            error: 'Failed to update slider',
+            success: false,
+            error: 'Failed to upload slider image',
             details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
         }, { status: 500 })
     }
 }
 
+
 // ============================================================
-// 🗑️ DELETE — Delete slider + Cloudinary image (Admin only)
+// 🗑️ DELETE — Delete slide or toggle active status (Admin only)
 // ============================================================
 export async function DELETE(req) {
     let user = null
@@ -313,33 +326,42 @@ export async function DELETE(req) {
     }
 
     try {
-        const { ObjectId } = await import('mongodb')
         const { searchParams } = new URL(req.url)
-        const id = sanitizeString(searchParams.get('id') || '', 100)
+        const slideId = sanitizeString(searchParams.get('id') || '', 100)
+        const action = searchParams.get('action')
 
-        if (!id) return NextResponse.json({ error: 'Slider id is required' }, { status: 400 })
-
-        let oid
-        try { oid = new ObjectId(id) } catch {
-            return NextResponse.json({ error: 'Invalid id format' }, { status: 400 })
-        }
+        if (!slideId) return NextResponse.json({ error: 'Slide id is required' }, { status: 400 })
 
         const client = await clientPromise
         const db = client.db('ECOM')
-        const slider = await db.collection('sliders').findOne({ _id: oid })
-        if (!slider) return NextResponse.json({ error: 'Slider not found' }, { status: 404 })
 
-        // Remove Cloudinary image
-        if (slider.image?.publicId) await deleteImage(slider.image.publicId)
+        // Look up by string 'id' field
+        const slider = await db.collection('sliders').findOne({ id: slideId })
+        if (!slider) return NextResponse.json({ error: 'Slide not found' }, { status: 404 })
 
-        await db.collection('sliders').deleteOne({ _id: oid })
+        // Toggle active status
+        if (action === 'toggle') {
+            await db.collection('sliders').updateOne(
+                { id: slideId },
+                { $set: { isActive: !slider.isActive, updatedAt: new Date() } }
+            )
+            logAudit('SLIDER_TOGGLED', { userId: user.userId, slideId }, req)
+            return NextResponse.json({ success: true, message: `Slide ${slider.isActive ? 'deactivated' : 'activated'}` })
+        }
 
-        logAudit('SLIDER_DELETED', { userId: user.userId, userEmail: user.email, sliderId: id, title: slider.title }, req)
-        return NextResponse.json({ message: 'Slider deleted successfully' }, { status: 200 })
+        // Delete: remove Cloudinary image first
+        if (slider.imagePublicId) await deleteImage(slider.imagePublicId)
+        else if (slider.image?.publicId) await deleteImage(slider.image.publicId)
+
+        await db.collection('sliders').deleteOne({ id: slideId })
+
+        logAudit('SLIDER_DELETED', { userId: user.userId, slideId, title: slider.title }, req)
+        return NextResponse.json({ success: true, message: 'Slide deleted successfully' })
 
     } catch (err) {
         console.error('❌ DELETE /api/slider error:', err)
         return NextResponse.json({
+            success: false,
             error: 'Failed to delete slider',
             details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
         }, { status: 500 })

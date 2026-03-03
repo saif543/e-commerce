@@ -8,27 +8,28 @@ import {
     LayoutDashboard,
     Package,
     ShoppingCart,
-    Users,
-    BarChart3,
-    Settings,
     LogOut,
     Image as ImageIcon,
     Bell,
-    Home
+    Home,
+    Tag
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import AdminGuard from '@/components/admin/AdminGuard'
 import SliderManager from '@/components/admin/SliderManager'
 import ProductManager from '@/components/admin/ProductManager'
 import OrderManager from '@/components/admin/OrderManager'
-import CustomerManager from '@/components/admin/CustomerManager'
-import AnalyticsManager from '@/components/admin/AnalyticsManager'
-import SettingsManager from '@/components/admin/SettingsManager'
+import BrandManager from '@/components/admin/BrandManager'
 
 function AdminDashboard() {
     const router = useRouter()
     const { user, loading: authLoading, getToken, signOut } = useAuth()
-    const [activeTab, setActiveTab] = useState('dashboard')
+    const [activeTab, setActiveTab] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('adminActiveTab') || 'dashboard'
+        }
+        return 'dashboard'
+    })
     const [stats, setStats] = useState({
         totalProducts: 0,
         totalOrders: 0,
@@ -42,6 +43,11 @@ function AdminDashboard() {
             fetchDashboardData()
         }
     }, [user, authLoading])
+
+    // Persist active tab to localStorage
+    useEffect(() => {
+        localStorage.setItem('adminActiveTab', activeTab)
+    }, [activeTab])
 
     const fetchDashboardData = async () => {
         setLoading(true)
@@ -110,9 +116,7 @@ function AdminDashboard() {
         { id: 'products', label: 'Products', icon: Package },
         { id: 'sliders', label: 'Sliders', icon: ImageIcon },
         { id: 'orders', label: 'Orders', icon: ShoppingCart },
-        { id: 'customers', label: 'Customers', icon: Users },
-        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-        { id: 'settings', label: 'Settings', icon: Settings },
+        { id: 'brands', label: 'Brands', icon: Tag },
     ]
 
     const formatCurrency = (amount) => {
@@ -149,6 +153,7 @@ function AdminDashboard() {
                         <button
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
+                            title={item.label}
                             className={`w-full flex items-center justify-center px-4 py-3 rounded-lg transition-all ${activeTab === item.id
                                 ? 'bg-[#FF6B35] text-white shadow-lg'
                                 : 'text-gray-400 hover:bg-gray-800 hover:text-white'
@@ -240,7 +245,7 @@ function AdminDashboard() {
                                 >
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                                            <BarChart3 className="text-[#FF6B35]" size={24} />
+                                            <ShoppingCart className="text-[#FF6B35]" size={24} />
                                         </div>
                                         <span className="text-sm text-gray-500">Total</span>
                                     </div>
@@ -268,7 +273,7 @@ function AdminDashboard() {
                             {/* Quick Actions */}
                             <div className="bg-white rounded-xl p-6 border border-gray-200">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                     <button
                                         onClick={() => setActiveTab('products')}
                                         className="p-4 border-2 border-gray-200 rounded-lg hover:border-[#FF6B35] hover:bg-orange-50 transition-all text-left"
@@ -293,14 +298,6 @@ function AdminDashboard() {
                                         <p className="font-medium text-gray-900">View Orders</p>
                                         <p className="text-xs text-gray-500 mt-1">Manage purchases</p>
                                     </button>
-                                    <button
-                                        onClick={() => setActiveTab('analytics')}
-                                        className="p-4 border-2 border-gray-200 rounded-lg hover:border-[#FF6B35] hover:bg-orange-50 transition-all text-left"
-                                    >
-                                        <BarChart3 className="text-[#FF6B35] mb-2" size={24} />
-                                        <p className="font-medium text-gray-900">View Analytics</p>
-                                        <p className="text-xs text-gray-500 mt-1">Check performance</p>
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -321,19 +318,9 @@ function AdminDashboard() {
                         <OrderManager getToken={getToken} />
                     )}
 
-                    {/* Customers Tab */}
-                    {activeTab === 'customers' && (
-                        <CustomerManager getToken={getToken} />
-                    )}
-
-                    {/* Analytics Tab */}
-                    {activeTab === 'analytics' && (
-                        <AnalyticsManager getToken={getToken} />
-                    )}
-
-                    {/* Settings Tab */}
-                    {activeTab === 'settings' && (
-                        <SettingsManager getToken={getToken} />
+                    {/* Brands Tab */}
+                    {activeTab === 'brands' && (
+                        <BrandManager getToken={getToken} />
                     )}
                 </div>
             </main>

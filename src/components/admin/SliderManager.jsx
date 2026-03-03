@@ -256,13 +256,13 @@ export default function SliderManagement({ getToken }) {
 
     const handleDeleteSlide = async (slideId) => {
         const result = await MySwal.fire({
-            title: 'Delete Slide?',
-            text: 'This action cannot be undone',
+            title: 'Permanently Delete Slide?',
+            text: 'This will remove the slide and its image from Cloudinary. This cannot be undone.',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#EF4444',
             cancelButtonColor: '#6B7280',
-            confirmButtonText: 'Yes, delete it',
+            confirmButtonText: 'Yes, permanently delete',
             cancelButtonText: 'Cancel',
         })
 
@@ -270,36 +270,33 @@ export default function SliderManagement({ getToken }) {
 
         try {
             const token = await getToken()
-            if (!token) {
-                throw new Error('Authentication required')
-            }
+            if (!token) throw new Error('Authentication required')
 
             const response = await fetch(`/api/slider?id=${slideId}`, {
                 method: 'DELETE',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { Authorization: `Bearer ${token}` },
             })
 
-            const data = await response.json()
-
-            if (data.success) {
-                MySwal.fire({
-                    icon: 'success',
-                    title: 'Deleted!',
-                    text: 'Slide has been deleted',
-                    timer: 1500,
-                    showConfirmButton: false,
-                    confirmButtonColor: '#FF6B35',
-                })
-                fetchSlides()
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}))
+                throw new Error(data.error || `Server error ${response.status}`)
             }
+
+            MySwal.fire({
+                icon: 'success',
+                title: 'Deleted!',
+                text: 'Slide permanently deleted',
+                timer: 1500,
+                showConfirmButton: false,
+                confirmButtonColor: '#FF6B35',
+            })
+            fetchSlides()
         } catch (error) {
             console.error('Error deleting slide:', error)
             MySwal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Failed to delete slide',
+                text: error.message || 'Failed to delete slide',
                 confirmButtonColor: '#FF6B35',
             })
         }
@@ -560,32 +557,82 @@ export default function SliderManagement({ getToken }) {
                                             exit={{ opacity: 0, height: 0 }}
                                             className="mt-4 pt-4 border-t border-gray-200"
                                         >
-                                            <h4 className="font-semibold text-gray-900 mb-3">Live Preview</h4>
+                                            <h4 className="font-semibold text-gray-900 mb-3">Live Preview — Hero Layout</h4>
+                                            {/* Hero-faithful preview */}
                                             <div
-                                                className="relative w-full h-48 rounded-lg overflow-hidden"
+                                                className="relative w-full rounded-lg overflow-hidden"
                                                 style={{
-                                                    backgroundImage: slide?.image ? `url('${slide.image}')` : 'linear-gradient(to right, #e5e7eb, #d1d5db)',
+                                                    height: '220px',
+                                                    backgroundImage: slide?.image ? `url('${slide.image}')` : 'linear-gradient(to right, #1a1a2e, #4C1D95)',
                                                     backgroundSize: 'cover',
                                                     backgroundPosition: 'center',
                                                 }}
                                             >
-                                                <div className="absolute inset-0 bg-black/40"></div>
-                                                <div className={`absolute inset-0 flex flex-col ${slide.alignment === 'left' ? 'items-start' :
-                                                    slide.alignment === 'right' ? 'items-end' :
-                                                        'items-center'
-                                                    } justify-center px-8 text-white`}>
-                                                    <h2 className="text-3xl font-bold mb-2">
-                                                        {slide.title === '--' ? '' : slide.title}
-                                                    </h2>
-                                                    <p className="text-lg mb-4">
-                                                        {slide.subtitle === '--' ? '' : slide.subtitle}
-                                                    </p>
-                                                    {slide.description && <p className="text-sm mb-4 max-w-md">{slide.description}</p>}
-                                                    {slide.buttonText && (
-                                                        <button className="px-6 py-2 bg-[#FF6B35] text-white rounded-lg font-semibold hover:bg-[#E85A2A] transition-colors">
-                                                            {slide.buttonText}
-                                                        </button>
+                                                {/* Same gradient as Hero.jsx */}
+                                                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+
+                                                {/* Content positioned like Hero */}
+                                                <div
+                                                    className={`absolute inset-0 flex flex-col justify-center px-8 text-white ${slide.alignment === 'right' ? 'items-end text-right' :
+                                                        slide.alignment === 'center' ? 'items-center text-center' :
+                                                            'items-start text-left'
+                                                        }`}
+                                                >
+                                                    {/* Badge (subtitle) */}
+                                                    {slide.subtitle && slide.subtitle !== '--' && (
+                                                        <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-[10px] font-semibold px-3 py-1 rounded-full mb-3 tracking-wide border border-white/15">
+                                                            {slide.subtitle}
+                                                        </span>
                                                     )}
+
+                                                    {/* Title */}
+                                                    {slide.title && slide.title !== '--' && (
+                                                        <h2
+                                                            className="font-serif font-bold text-white leading-tight mb-2 whitespace-pre-line"
+                                                            style={{
+                                                                fontSize: `${Math.min(Math.round((slide.titleSize || 48) * 0.45), 28)}px`,
+                                                                textShadow: '0 2px 12px rgba(0,0,0,0.7)',
+                                                            }}
+                                                        >
+                                                            {slide.title}
+                                                        </h2>
+                                                    )}
+
+                                                    {/* Description */}
+                                                    {slide.description && (
+                                                        <p
+                                                            className="text-white/90 leading-relaxed mb-3 max-w-xs"
+                                                            style={{
+                                                                fontSize: `${Math.min(Math.round((slide.descriptionSize || 16) * 0.75), 13)}px`,
+                                                                textShadow: '0 1px 6px rgba(0,0,0,0.6)',
+                                                            }}
+                                                        >
+                                                            {slide.description}
+                                                        </p>
+                                                    )}
+
+                                                    {/* CTA Button + Learn More */}
+                                                    <div className="flex items-center gap-2">
+                                                        {slide.buttonText && (
+                                                            <button
+                                                                className="bg-[#2D1854] hover:bg-[#4C1D95] text-white rounded font-semibold shadow-lg"
+                                                                style={{
+                                                                    fontSize: `${Math.min(Math.round((slide.buttonSize || 14) * 0.85), 12)}px`,
+                                                                    padding: '6px 16px',
+                                                                }}
+                                                            >
+                                                                {slide.buttonText}
+                                                            </button>
+                                                        )}
+                                                        <button className="bg-white/15 backdrop-blur-sm text-white text-[10px] font-medium px-3 py-1.5 rounded border border-white/20">
+                                                            Learn More
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Preview label */}
+                                                <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-full border border-white/20">
+                                                    Preview
                                                 </div>
                                             </div>
                                         </motion.div>
