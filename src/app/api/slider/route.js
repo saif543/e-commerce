@@ -181,6 +181,7 @@ export async function POST(req) {
                 buttonText: sanitizeString(slideData.buttonText || '', MAX_CTA_TEXT_LENGTH),
                 secondButtonText: sanitizeString(slideData.secondButtonText || 'Learn More', MAX_CTA_TEXT_LENGTH),
                 link: sanitizeString(slideData.link || '', MAX_CTA_LINK_LENGTH),
+                secondLink: sanitizeString(slideData.secondLink || '', MAX_CTA_LINK_LENGTH),
                 alignment: ['left', 'center', 'right'].includes(slideData.alignment) ? slideData.alignment : 'left',
                 alt: sanitizeString(slideData.alt || '', 200),
                 isActive: slideData.isActive !== false,
@@ -232,6 +233,7 @@ export async function POST(req) {
                 if (slideData.buttonText !== undefined) updateData.buttonText = sanitizeString(slideData.buttonText, MAX_CTA_TEXT_LENGTH)
                 if (slideData.secondButtonText !== undefined) updateData.secondButtonText = sanitizeString(slideData.secondButtonText, MAX_CTA_TEXT_LENGTH)
                 if (slideData.link !== undefined) updateData.link = sanitizeString(slideData.link, MAX_CTA_LINK_LENGTH)
+                if (slideData.secondLink !== undefined) updateData.secondLink = sanitizeString(slideData.secondLink, MAX_CTA_LINK_LENGTH)
                 if (slideData.alignment !== undefined) updateData.alignment = ['left', 'center', 'right'].includes(slideData.alignment) ? slideData.alignment : 'left'
                 if (slideData.alt !== undefined) updateData.alt = sanitizeString(slideData.alt, 200)
                 if (slideData.isActive !== undefined) updateData.isActive = Boolean(slideData.isActive)

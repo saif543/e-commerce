@@ -34,6 +34,7 @@ const DEFAULT_FORM = {
     buttonText: '',
     secondButtonText: 'Learn More',
     link: '',
+    secondLink: '',
     alignment: 'left',
     alt: '',
     isActive: true,
@@ -276,6 +277,7 @@ export default function SliderManagement({ getToken }) {
             buttonText: slide.buttonText || '',
             secondButtonText: slide.secondButtonText || 'Learn More',
             link: slide.link || '',
+            secondLink: slide.secondLink || '',
             alignment: slide.alignment || 'left',
             alt: slide.alt || '',
             isActive: slide.isActive !== false,
@@ -784,15 +786,27 @@ export default function SliderManagement({ getToken }) {
                                                     />
                                                 </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-semibold text-gray-700 mb-1">Link URL (optional)</label>
-                                                <input
-                                                    type="url"
-                                                    value={formData.link}
-                                                    onChange={e => set('link', e.target.value)}
-                                                    placeholder="https://example.com/products"
-                                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35]"
-                                                />
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-gray-700 mb-1">Primary Button Link (optional)</label>
+                                                    <input
+                                                        type="url"
+                                                        value={formData.link}
+                                                        onChange={e => set('link', e.target.value)}
+                                                        placeholder="https://example.com/products"
+                                                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35]"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-gray-700 mb-1">Secondary Button Link (optional)</label>
+                                                    <input
+                                                        type="url"
+                                                        value={formData.secondLink}
+                                                        onChange={e => set('secondLink', e.target.value)}
+                                                        placeholder="https://example.com/about"
+                                                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35]"
+                                                    />
+                                                </div>
                                             </div>
                                         </section>
 

@@ -76,6 +76,7 @@ function mapApiSlide(s) {
     secondCtaBg: s.secondButtonBgColor || 'rgba(255,255,255,0.15)',
     secondCtaColor: s.secondButtonTextColor || '#ffffff',
     link: s.link || null,
+    secondLink: s.secondLink || null,
     image: imageUrl,
     alt: s.alt || s.title || 'Slide',
     alignment: s.alignment || 'left',
@@ -278,17 +279,33 @@ export default function Hero() {
               )}
 
               {slide.secondCta && (
-                <motion.button
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  className="px-6 py-3.5 rounded-md text-sm font-medium transition-colors border border-white/20 backdrop-blur-sm"
-                  style={{
-                    backgroundColor: slide.secondCtaBg,
-                    color: slide.secondCtaColor,
-                  }}
-                >
-                  {slide.secondCta}
-                </motion.button>
+                slide.secondLink ? (
+                  <a href={slide.secondLink} target="_blank" rel="noopener noreferrer">
+                    <motion.button
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
+                      className="px-6 py-3.5 rounded-md text-sm font-medium transition-colors border border-white/20 backdrop-blur-sm"
+                      style={{
+                        backgroundColor: slide.secondCtaBg,
+                        color: slide.secondCtaColor,
+                      }}
+                    >
+                      {slide.secondCta}
+                    </motion.button>
+                  </a>
+                ) : (
+                  <motion.button
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    className="px-6 py-3.5 rounded-md text-sm font-medium transition-colors border border-white/20 backdrop-blur-sm"
+                    style={{
+                      backgroundColor: slide.secondCtaBg,
+                      color: slide.secondCtaColor,
+                    }}
+                  >
+                    {slide.secondCta}
+                  </motion.button>
+                )
               )}
             </div>
           </motion.div>
