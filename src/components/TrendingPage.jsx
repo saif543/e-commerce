@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Grid3X3, LayoutList, Star, SlidersHorizontal, X, TrendingUp, Flame, Heart } from "lucide-react";
 import { useWishlist } from "@/context/WishlistContext";
+import { useCart } from "@/context/CartContext";
 import { products } from "@/data/products";
 
 const sortOptions = [
@@ -55,6 +56,7 @@ export default function TrendingPage() {
   };
 
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { addToCart } = useCart();
   const allBrands = [...new Set(products.map((p) => p.brand))];
   const availabilityOptions = ["In Stock", "Out of Stock"];
 
@@ -314,41 +316,43 @@ export default function TrendingPage() {
                   transition={{ duration: 0.3, delay: i * 0.03 }}
                   whileHover={{ y: -8, rotateX: 2, rotateY: -1 }}
                   style={{ transformPerspective: 800 }}
-                  className="bg-card-white rounded-xl overflow-hidden group shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(45,24,84,0.15)] transition-all duration-300 relative"
+                  className="bg-card-white rounded-xl overflow-hidden group shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(45,24,84,0.15)] transition-all duration-300 relative flex flex-col"
                 >
                   {/* Trending badge */}
                   <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-20 flex items-center gap-1 bg-orange-500 text-white text-[9px] sm:text-[10px] font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
                     <Flame size={10} />
                     Trending
                   </div>
-                  <Link href={`/product/${product.id}`}>
+                  <Link href={`/product/${product.id}`} className="flex-1 flex flex-col">
                     <div className="relative h-36 sm:h-44 lg:h-56 bg-offwhite overflow-hidden">
                       <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-green-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full z-10">
                         Save Tk {(product.originalPrice - product.price).toFixed(0)}
                       </span>
                       <Image src={product.image} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 25vw" />
                     </div>
-                    <div className="p-2.5 sm:p-4">
+                    <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
                       <p className="text-[10px] sm:text-[11px] text-purple-mid font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product.brand}</p>
                       <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 group-hover:text-purple-dark transition-colors">
                         {product.name}
                       </h3>
-                      {product.stock === "In Stock" ? (
-                        <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
-                          <span className="text-sm sm:text-lg font-bold text-orange-600">Tk {product.price.toFixed(2)}</span>
-                          <span className="text-[10px] sm:text-xs text-text-muted line-through">Tk {product.originalPrice.toFixed(2)}</span>
-                        </div>
-                      ) : (
-                        <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">
-                          {product.stock}
-                        </span>
-                      )}
+                      <div className="mt-auto">
+                        {product.stock === "In Stock" ? (
+                          <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
+                            <span className="text-sm sm:text-lg font-bold text-orange-600">Tk {product.price.toFixed(2)}</span>
+                            <span className="text-[10px] sm:text-xs text-text-muted line-through">Tk {product.originalPrice.toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">
+                            {product.stock}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </Link>
-                  <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4">
+                  <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4 mt-auto">
                     <div className="flex items-center gap-1.5 sm:gap-2">
                       {product.stock === "In Stock" ? (
-                        <button className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">Add to Cart</button>
+                        <button onClick={() => addToCart(product.id)} className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">Add to Cart</button>
                       ) : (
                         <button className="flex-1 bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>{product.stock}</button>
                       )}

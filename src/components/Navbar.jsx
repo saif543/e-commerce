@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search, Heart, ShoppingCart, ChevronDown, ChevronRight, X, User, LogOut } from "lucide-react";
 import { categories } from "@/data/categories";
 import { useWishlist } from "@/context/WishlistContext";
+import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/hooks/useAuth";
 import Swal from "sweetalert2";
 
@@ -29,6 +30,7 @@ export default function Navbar() {
   const [signingOut, setSigningOut] = useState(false);
   const searchRef = useRef(null);
   const { wishlist } = useWishlist();
+  const { cartCount } = useCart();
 
   const isCategoryActive = pathname.startsWith("/category");
 
@@ -337,12 +339,16 @@ export default function Navbar() {
                 )}
               </motion.button>
             </Link>
-            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} className="relative text-text-primary hover:text-purple-mid transition-colors">
-              <ShoppingCart size={22} />
-              <span className="absolute -top-2 -right-2.5 bg-purple-mid text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                0
-              </span>
-            </motion.button>
+            <Link href="/cart">
+              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} className="relative text-text-primary hover:text-purple-mid transition-colors">
+                <ShoppingCart size={22} />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2.5 bg-purple-mid text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                    {cartCount}
+                  </span>
+                )}
+              </motion.button>
+            </Link>
           </div>
         </div>
       </div>

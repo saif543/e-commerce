@@ -6,11 +6,15 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Heart, Star, ChevronLeft, ChevronRight, Minus, Plus, ArrowLeft } from "lucide-react";
 import { products } from "@/data/products";
+import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 export default function ProductDetail({ product }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [qty, setQty] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
+  const { addToCart } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
 
   const relatedProducts = products.filter((p) => p.id !== product.id).slice(0, 4);
 
@@ -191,6 +195,7 @@ export default function ProductDetail({ product }) {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              onClick={() => addToCart(product.id, qty)}
               className="flex-1 bg-purple-dark hover:bg-purple-mid text-white py-4 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
             >
               <ShoppingCart size={18} />
@@ -199,9 +204,12 @@ export default function ProductDetail({ product }) {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="w-14 h-14 border border-gray-200 rounded-xl flex items-center justify-center text-text-secondary hover:text-red-500 hover:border-red-200 transition-colors"
+              onClick={() => toggleWishlist(product.id)}
+              className={`w-14 h-14 border rounded-xl flex items-center justify-center transition-colors ${
+                isInWishlist(product.id) ? "border-red-300 bg-red-50 text-red-500" : "border-gray-200 text-text-secondary hover:text-red-500 hover:border-red-200"
+              }`}
             >
-              <Heart size={20} />
+              <Heart size={20} className={isInWishlist(product.id) ? "fill-red-500" : ""} />
             </motion.button>
           </div>
         </div>

@@ -6,9 +6,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Heart, ShoppingCart, Trash2 } from "lucide-react";
 import { products } from "@/data/products";
 import { useWishlist } from "@/context/WishlistContext";
+import { useCart } from "@/context/CartContext";
 
 export default function WishlistPage() {
   const { wishlist, toggleWishlist } = useWishlist();
+  const { addToCart } = useCart();
   const wishlistProducts = products.filter((p) => wishlist.includes(p.id));
 
   return (
@@ -49,9 +51,9 @@ export default function WishlistPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.25 }}
-                className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group"
+                className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col"
               >
-                <Link href={`/product/${product.id}`}>
+                <Link href={`/product/${product.id}`} className="flex-1 flex flex-col">
                   <div className="relative h-36 sm:h-44 lg:h-56 bg-offwhite overflow-hidden">
                     {product.badge && (
                       <span className="absolute top-2 left-2 bg-purple-soft text-purple-mid text-[9px] sm:text-[10px] font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full z-10">
@@ -66,33 +68,35 @@ export default function WishlistPage() {
                       sizes="(max-width: 640px) 50vw, 25vw"
                     />
                   </div>
-                  <div className="p-2.5 sm:p-4">
+                  <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
                     <p className="text-[10px] sm:text-[11px] text-purple-mid font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">
                       {product.brand}
                     </p>
                     <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 group-hover:text-purple-dark transition-colors">
                       {product.name}
                     </h3>
-                    {product.stock === "In Stock" ? (
-                      <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
-                        <span className="text-sm sm:text-lg font-bold text-orange-600">
-                          Tk {product.price.toFixed(2)}
+                    <div className="mt-auto">
+                      {product.stock === "In Stock" ? (
+                        <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
+                          <span className="text-sm sm:text-lg font-bold text-orange-600">
+                            Tk {product.price.toFixed(2)}
+                          </span>
+                          <span className="text-[10px] sm:text-xs text-text-muted line-through">
+                            Tk {product.originalPrice.toFixed(2)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-red-100 text-red-600">
+                          {product.stock}
                         </span>
-                        <span className="text-[10px] sm:text-xs text-text-muted line-through">
-                          Tk {product.originalPrice.toFixed(2)}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-red-100 text-red-600">
-                        {product.stock}
-                      </span>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </Link>
-                <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4">
+                <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4 mt-auto">
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     {product.stock === "In Stock" ? (
-                      <button className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
+                      <button onClick={() => addToCart(product.id)} className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
                         Add to Cart
                       </button>
                     ) : (

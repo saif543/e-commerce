@@ -6,12 +6,14 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Star, Grid3X3, List, ArrowLeft, Heart } from "lucide-react";
 import { useWishlist } from "@/context/WishlistContext";
+import { useCart } from "@/context/CartContext";
 import { products } from "@/data/products";
 import { brands } from "@/data/brands";
 
 export default function BrandPage({ slug }) {
   const [viewMode, setViewMode] = useState("grid");
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { addToCart } = useCart();
 
   const brand = brands.find((b) => b.slug === slug);
   const brandProducts = products.filter(
@@ -85,9 +87,9 @@ export default function BrandPage({ slug }) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: i * 0.05 }}
-              className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group"
+              className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col"
             >
-              <Link href={`/product/${product.id}`}>
+              <Link href={`/product/${product.id}`} className="flex-1 flex flex-col">
                 <div className="relative h-36 sm:h-44 lg:h-56 bg-offwhite overflow-hidden">
                   {product.badge && (
                     <span className="absolute top-2 left-2 bg-purple-soft text-purple-mid text-[9px] sm:text-[10px] font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full z-10">
@@ -102,7 +104,7 @@ export default function BrandPage({ slug }) {
                     sizes="(max-width: 640px) 50vw, 25vw"
                   />
                 </div>
-                <div className="p-2.5 sm:p-4">
+                <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
                   <div className="flex items-center gap-0.5 mb-1">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Star key={s} size={10} className={s <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-200"} />
@@ -112,22 +114,24 @@ export default function BrandPage({ slug }) {
                   <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 group-hover:text-purple-dark transition-colors">
                     {product.name}
                   </h3>
-                  {product.stock === "In Stock" ? (
-                    <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
-                      <span className="text-sm sm:text-lg font-bold text-orange-600">Tk {product.price.toFixed(2)}</span>
-                      <span className="text-[10px] sm:text-xs text-text-muted line-through">Tk {product.originalPrice.toFixed(2)}</span>
-                    </div>
-                  ) : (
-                    <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">
-                      {product.stock}
-                    </span>
-                  )}
+                  <div className="mt-auto">
+                    {product.stock === "In Stock" ? (
+                      <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
+                        <span className="text-sm sm:text-lg font-bold text-orange-600">Tk {product.price.toFixed(2)}</span>
+                        <span className="text-[10px] sm:text-xs text-text-muted line-through">Tk {product.originalPrice.toFixed(2)}</span>
+                      </div>
+                    ) : (
+                      <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">
+                        {product.stock}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </Link>
-              <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4">
+              <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4 mt-auto">
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   {product.stock === "In Stock" ? (
-                    <button className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
+                    <button onClick={() => addToCart(product.id)} className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
                       Add to Cart
                     </button>
                   ) : (
