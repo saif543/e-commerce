@@ -1,0 +1,1 @@
+1. Delete the brand backend api code. BrandManager.jsx also remove the options of adding brand when creating a product. And remove the brand instance from the product backend api also. We don't need brand anymore. 

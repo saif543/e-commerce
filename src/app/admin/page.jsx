@@ -11,15 +11,13 @@ import {
     LogOut,
     Image as ImageIcon,
     Bell,
-    Home,
-    Tag
+    Home
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import AdminGuard from '@/components/admin/AdminGuard'
 import SliderManager from '@/components/admin/SliderManager'
 import ProductManager from '@/components/admin/ProductManager'
 import OrderManager from '@/components/admin/OrderManager'
-import BrandManager from '@/components/admin/BrandManager'
 
 function AdminDashboard() {
     const router = useRouter()
@@ -116,7 +114,6 @@ function AdminDashboard() {
         { id: 'products', label: 'Products', icon: Package },
         { id: 'sliders', label: 'Sliders', icon: ImageIcon },
         { id: 'orders', label: 'Orders', icon: ShoppingCart },
-        { id: 'brands', label: 'Brands', icon: Tag },
     ]
 
     const formatCurrency = (amount) => {
@@ -316,11 +313,6 @@ function AdminDashboard() {
                     {/* Orders Tab */}
                     {activeTab === 'orders' && (
                         <OrderManager getToken={getToken} />
-                    )}
-
-                    {/* Brands Tab */}
-                    {activeTab === 'brands' && (
-                        <BrandManager getToken={getToken} />
                     )}
                 </div>
             </main>

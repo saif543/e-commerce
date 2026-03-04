@@ -4,20 +4,29 @@ import Image from "next/image";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Fallback slides in case the API returns nothing
+// Fallback slide — mirrors exact look from the screenshot
 const FALLBACK_SLIDES = [
   {
     badge: "Premium Electronics Store",
+    badgeColor: "#ffffff",
     title: "Premium Tech\nfor Modern Living",
+    titleColor: "#ffffff",
+    titleSize: 52,
     desc: "Thoughtfully curated electronics and gadgets, designed for quality and everyday use.",
+    descColor: "rgba(255,255,255,0.85)",
+    descSize: 16,
     cta: "Shop Collection",
+    ctaBg: "#2D1854",
+    ctaColor: "#ffffff",
+    ctaSize: 14,
+    secondCta: "Learn More",
+    secondCtaBg: "rgba(255,255,255,0.15)",
+    secondCtaColor: "#ffffff",
     link: null,
     image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=1400&h=700&fit=crop",
     alt: "Premium Headphones",
     alignment: "left",
-    titleSize: 52,
-    descSize: 16,
-    ctaSize: 14,
+    overlayOpacity: 0.65,
   },
 ];
 
@@ -28,33 +37,51 @@ const slideVariants = {
     x: direction > 0 ? "100%" : "-100%",
     opacity: 0,
   }),
-  center: {
-    x: 0,
-    opacity: 1,
-  },
+  center: { x: 0, opacity: 1 },
   exit: (direction) => ({
     x: direction > 0 ? "-100%" : "100%",
     opacity: 0,
   }),
 };
 
+function hexToRgba(hex, alpha) {
+  if (!hex) return `rgba(0,0,0,${alpha})`;
+  // Handle 8-char hex (has built-in opacity — ignore and use alpha param)
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.substring(0, 2), 16);
+  const g = parseInt(clean.substring(2, 4), 16);
+  const b = parseInt(clean.substring(4, 6), 16);
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return `rgba(0,0,0,${alpha})`;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 function mapApiSlide(s) {
-  // Handle both SliderManager schema (buttonText, description, link)
-  // and the base route.js schema (ctaText, ctaLink)
-  const imageUrl = s.image?.url || s.image || ''
+  const imageUrl = s.image?.url || s.image || '';
+  const opacity = typeof s.overlayOpacity === 'number' ? s.overlayOpacity : 0.65;
+
   return {
-    badge: s.subtitle || '',
-    title: s.title || '',
+    badge: s.subtitle && s.subtitle !== '--' ? s.subtitle : '',
+    badgeColor: s.subtitleColor || '#ffffff',
+    title: s.title && s.title !== '--' ? s.title : '',
+    titleColor: s.titleColor || '#ffffff',
+    titleSize: s.titleSize || 52,
     desc: s.description || '',
-    cta: s.buttonText || s.ctaText || 'Shop Now',
-    link: s.link || s.ctaLink || null,
+    descColor: s.descriptionColor || 'rgba(255,255,255,0.85)',
+    descSize: s.descriptionSize || 16,
+    cta: s.buttonText || '',
+    ctaBg: s.buttonBgColor || '#2D1854',
+    ctaColor: s.buttonTextColor || '#ffffff',
+    ctaSize: s.buttonSize || 14,
+    secondCta: s.secondButtonText || 'Learn More',
+    secondCtaBg: s.secondButtonBgColor || 'rgba(255,255,255,0.15)',
+    secondCtaColor: s.secondButtonTextColor || '#ffffff',
+    link: s.link || null,
+    secondLink: s.secondLink || null,
     image: imageUrl,
     alt: s.alt || s.title || 'Slide',
     alignment: s.alignment || 'left',
-    titleSize: s.titleSize || 52,
-    descSize: s.descriptionSize || 16,
-    ctaSize: s.buttonSize || 14,
-  }
+    overlayOpacity: opacity,
+  };
 }
 
 export default function Hero() {
@@ -67,10 +94,10 @@ export default function Hero() {
     fetch("/api/slider")
       .then((res) => res.json())
       .then((data) => {
-        const active = (data.sliders || []).filter((s) => s.isActive);
+        const active = (data.slides || data.sliders || []).filter((s) => s.isActive);
         if (active.length > 0) {
           setSlides(active.map(mapApiSlide));
-          setSlide([0, 1]); // reset to first slide
+          setSlide([0, 1]);
         }
       })
       .catch(() => {
@@ -125,6 +152,12 @@ export default function Hero() {
         ? "items-center text-center"
         : "items-start text-left";
 
+  // Build dynamic gradient from overlayOpacity
+  const opacity = slide.overlayOpacity ?? 0.65;
+  const overlayStyle = {
+    background: `linear-gradient(to right, rgba(0,0,0,${opacity}) 0%, rgba(0,0,0,${opacity * 0.55}) 55%, rgba(0,0,0,0) 100%)`,
+  };
+
   return (
     <section className="relative w-full h-[420px] md:h-[480px] lg:h-[520px] overflow-hidden cursor-grab active:cursor-grabbing select-none">
       {/* Background Images — slide left/right */}
@@ -157,13 +190,13 @@ export default function Hero() {
             <div className="absolute inset-0 bg-gray-800" />
           )}
 
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+          {/* Dynamic Gradient Overlay */}
+          <div className="absolute inset-0" style={overlayStyle} />
         </motion.div>
       </AnimatePresence>
 
       {/* Content — slides with image */}
-      <div className="relative z-10 h-full max-w-[1440px] mx-auto px-6 flex items-center pointer-events-none">
+      <div className="relative z-10 h-full max-w-[1440px] mx-auto px-8 md:px-12 flex items-center pointer-events-none">
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={current}
@@ -173,30 +206,37 @@ export default function Hero() {
             transition={{ duration: 0.5, delay: 0.15 }}
             className={`max-w-xl pointer-events-auto flex flex-col ${alignClass}`}
           >
-            {/* Badge */}
+            {/* Badge / Subtitle */}
             {slide.badge && (
-              <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-4 py-1.5 rounded-full mb-5 tracking-wide border border-white/15">
+              <span
+                className="inline-block bg-white/20 backdrop-blur-sm text-xs font-semibold px-4 py-1.5 rounded-full mb-5 tracking-wide border border-white/15"
+                style={{ color: slide.badgeColor }}
+              >
                 {slide.badge}
               </span>
             )}
 
             {/* Title */}
-            <h1
-              className="font-serif leading-[1.08] text-white mb-4 whitespace-pre-line"
-              style={{
-                fontSize: `clamp(28px, ${slide.titleSize}px, ${slide.titleSize}px)`,
-                textShadow: "0 2px 12px rgba(0,0,0,0.7), 0 0px 40px rgba(0,0,0,0.4)",
-              }}
-            >
-              {slide.title}
-            </h1>
+            {slide.title && (
+              <h1
+                className="font-serif leading-[1.08] mb-4 whitespace-pre-line"
+                style={{
+                  fontSize: `clamp(28px, ${slide.titleSize}px, ${slide.titleSize}px)`,
+                  color: slide.titleColor,
+                  textShadow: "0 2px 12px rgba(0,0,0,0.7), 0 0px 40px rgba(0,0,0,0.4)",
+                }}
+              >
+                {slide.title}
+              </h1>
+            )}
 
             {/* Description */}
             {slide.desc && (
               <p
-                className="text-white leading-relaxed mb-7 max-w-md"
+                className="leading-relaxed mb-7 max-w-md"
                 style={{
                   fontSize: `${slide.descSize}px`,
+                  color: slide.descColor,
                   textShadow: "0 1px 8px rgba(0,0,0,0.6), 0 0px 30px rgba(0,0,0,0.3)",
                 }}
               >
@@ -205,15 +245,19 @@ export default function Hero() {
             )}
 
             {/* CTA Buttons */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               {slide.cta && (
                 slide.link ? (
                   <a href={slide.link} target="_blank" rel="noopener noreferrer">
                     <motion.button
                       whileHover={{ scale: 1.04 }}
                       whileTap={{ scale: 0.96 }}
-                      className="bg-purple-dark hover:bg-purple-mid text-white px-8 py-3.5 rounded-md font-semibold transition-colors shadow-lg"
-                      style={{ fontSize: `${slide.ctaSize}px` }}
+                      className="px-8 py-3.5 rounded-md font-semibold transition-colors shadow-lg"
+                      style={{
+                        fontSize: `${slide.ctaSize}px`,
+                        backgroundColor: slide.ctaBg,
+                        color: slide.ctaColor,
+                      }}
                     >
                       {slide.cta}
                     </motion.button>
@@ -222,20 +266,47 @@ export default function Hero() {
                   <motion.button
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.96 }}
-                    className="bg-purple-dark hover:bg-purple-mid text-white px-8 py-3.5 rounded-md font-semibold transition-colors shadow-lg"
-                    style={{ fontSize: `${slide.ctaSize}px` }}
+                    className="px-8 py-3.5 rounded-md font-semibold transition-colors shadow-lg"
+                    style={{
+                      fontSize: `${slide.ctaSize}px`,
+                      backgroundColor: slide.ctaBg,
+                      color: slide.ctaColor,
+                    }}
                   >
                     {slide.cta}
                   </motion.button>
                 )
               )}
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                className="bg-white/15 backdrop-blur-sm hover:bg-white/25 text-white px-6 py-3.5 rounded-md text-sm font-medium transition-colors border border-white/20"
-              >
-                Learn More
-              </motion.button>
+
+              {slide.secondCta && (
+                slide.secondLink ? (
+                  <a href={slide.secondLink} target="_blank" rel="noopener noreferrer">
+                    <motion.button
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
+                      className="px-6 py-3.5 rounded-md text-sm font-medium transition-colors border border-white/20 backdrop-blur-sm"
+                      style={{
+                        backgroundColor: slide.secondCtaBg,
+                        color: slide.secondCtaColor,
+                      }}
+                    >
+                      {slide.secondCta}
+                    </motion.button>
+                  </a>
+                ) : (
+                  <motion.button
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    className="px-6 py-3.5 rounded-md text-sm font-medium transition-colors border border-white/20 backdrop-blur-sm"
+                    style={{
+                      backgroundColor: slide.secondCtaBg,
+                      color: slide.secondCtaColor,
+                    }}
+                  >
+                    {slide.secondCta}
+                  </motion.button>
+                )
+              )}
             </div>
           </motion.div>
         </AnimatePresence>
