@@ -64,6 +64,14 @@ function sanitizeString(value, maxLength = 200) {
         .slice(0, maxLength)
 }
 
+function sanitizeHexColor(value) {
+    if (typeof value !== 'string') return null
+    const trimmed = value.trim()
+    // Allow hex colors with optional opacity like #ffffffcc (8-char) or #ffffff (6-char) or #fff (3-char)
+    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(trimmed)) return trimmed
+    return null
+}
+
 function isValidUrl(url) {
     if (!url) return true // CTA link is optional
     try { new URL(url.startsWith('/') ? `https://example.com${url}` : url); return true }
@@ -171,14 +179,26 @@ export async function POST(req) {
                 subtitle: sanitizeString(slideData.subtitle || '', MAX_SUBTITLE_LENGTH) || '--',
                 description: sanitizeString(slideData.description || '', 500),
                 buttonText: sanitizeString(slideData.buttonText || '', MAX_CTA_TEXT_LENGTH),
+                secondButtonText: sanitizeString(slideData.secondButtonText || 'Learn More', MAX_CTA_TEXT_LENGTH),
                 link: sanitizeString(slideData.link || '', MAX_CTA_LINK_LENGTH),
-                alignment: ['left', 'center', 'right'].includes(slideData.alignment) ? slideData.alignment : 'center',
+                alignment: ['left', 'center', 'right'].includes(slideData.alignment) ? slideData.alignment : 'left',
                 alt: sanitizeString(slideData.alt || '', 200),
                 isActive: slideData.isActive !== false,
-                titleSize: Number(slideData.titleSize) || 48,
-                subtitleSize: Number(slideData.subtitleSize) || 20,
+                // Font sizes
+                titleSize: Number(slideData.titleSize) || 52,
+                subtitleSize: Number(slideData.subtitleSize) || 14,
                 descriptionSize: Number(slideData.descriptionSize) || 16,
                 buttonSize: Number(slideData.buttonSize) || 14,
+                // Colors
+                titleColor: sanitizeHexColor(slideData.titleColor) || '#ffffff',
+                subtitleColor: sanitizeHexColor(slideData.subtitleColor) || '#ffffff',
+                descriptionColor: sanitizeHexColor(slideData.descriptionColor) || '#ffffffcc',
+                buttonBgColor: sanitizeHexColor(slideData.buttonBgColor) || '#2D1854',
+                buttonTextColor: sanitizeHexColor(slideData.buttonTextColor) || '#ffffff',
+                secondButtonBgColor: sanitizeHexColor(slideData.secondButtonBgColor) || '#ffffff26',
+                secondButtonTextColor: sanitizeHexColor(slideData.secondButtonTextColor) || '#ffffff',
+                // Overlay
+                overlayOpacity: Math.min(1, Math.max(0, Number(slideData.overlayOpacity) || 0.65)),
                 image: null,
                 order: 0,
                 createdBy: user.dbUserId || user.userId,
@@ -210,14 +230,26 @@ export async function POST(req) {
                 if (slideData.subtitle !== undefined) updateData.subtitle = sanitizeString(slideData.subtitle, MAX_SUBTITLE_LENGTH) || '--'
                 if (slideData.description !== undefined) updateData.description = sanitizeString(slideData.description, 500)
                 if (slideData.buttonText !== undefined) updateData.buttonText = sanitizeString(slideData.buttonText, MAX_CTA_TEXT_LENGTH)
+                if (slideData.secondButtonText !== undefined) updateData.secondButtonText = sanitizeString(slideData.secondButtonText, MAX_CTA_TEXT_LENGTH)
                 if (slideData.link !== undefined) updateData.link = sanitizeString(slideData.link, MAX_CTA_LINK_LENGTH)
-                if (slideData.alignment !== undefined) updateData.alignment = ['left', 'center', 'right'].includes(slideData.alignment) ? slideData.alignment : 'center'
+                if (slideData.alignment !== undefined) updateData.alignment = ['left', 'center', 'right'].includes(slideData.alignment) ? slideData.alignment : 'left'
                 if (slideData.alt !== undefined) updateData.alt = sanitizeString(slideData.alt, 200)
                 if (slideData.isActive !== undefined) updateData.isActive = Boolean(slideData.isActive)
+                // Font sizes
                 if (slideData.titleSize !== undefined) updateData.titleSize = Number(slideData.titleSize)
                 if (slideData.subtitleSize !== undefined) updateData.subtitleSize = Number(slideData.subtitleSize)
                 if (slideData.descriptionSize !== undefined) updateData.descriptionSize = Number(slideData.descriptionSize)
                 if (slideData.buttonSize !== undefined) updateData.buttonSize = Number(slideData.buttonSize)
+                // Colors
+                if (slideData.titleColor !== undefined) updateData.titleColor = sanitizeHexColor(slideData.titleColor) || '#ffffff'
+                if (slideData.subtitleColor !== undefined) updateData.subtitleColor = sanitizeHexColor(slideData.subtitleColor) || '#ffffff'
+                if (slideData.descriptionColor !== undefined) updateData.descriptionColor = sanitizeHexColor(slideData.descriptionColor) || '#ffffffcc'
+                if (slideData.buttonBgColor !== undefined) updateData.buttonBgColor = sanitizeHexColor(slideData.buttonBgColor) || '#2D1854'
+                if (slideData.buttonTextColor !== undefined) updateData.buttonTextColor = sanitizeHexColor(slideData.buttonTextColor) || '#ffffff'
+                if (slideData.secondButtonBgColor !== undefined) updateData.secondButtonBgColor = sanitizeHexColor(slideData.secondButtonBgColor) || '#ffffff26'
+                if (slideData.secondButtonTextColor !== undefined) updateData.secondButtonTextColor = sanitizeHexColor(slideData.secondButtonTextColor) || '#ffffff'
+                // Overlay
+                if (slideData.overlayOpacity !== undefined) updateData.overlayOpacity = Math.min(1, Math.max(0, Number(slideData.overlayOpacity) || 0.65))
             }
 
             await db.collection('sliders').updateOne({ id: slideId }, { $set: updateData })

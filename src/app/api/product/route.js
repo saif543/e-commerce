@@ -90,7 +90,6 @@ export async function GET(req) {
         let search = sanitizeString(searchParams.get('search') || '', MAX_SEARCH_LENGTH)
         let category = sanitizeString(searchParams.get('category') || '', 200)
         let subcategory = sanitizeString(searchParams.get('subcategory') || '', 200)
-        let brand = sanitizeString(searchParams.get('brand') || '', 100)
         let minPrice = searchParams.get('minPrice')
         let maxPrice = searchParams.get('maxPrice')
         let isFeatured = searchParams.get('isFeatured')
@@ -146,7 +145,6 @@ export async function GET(req) {
         }
         if (category) query.category = { $regex: `^${category}$`, $options: 'i' }
         if (subcategory) query.subcategory = { $regex: `^${subcategory}$`, $options: 'i' }
-        if (brand) query.brand = { $regex: `^${brand}$`, $options: 'i' }
         if (isFeatured === 'true') query.isFeatured = true
         if (isTrending === 'true') query.isTrending = true
 
@@ -218,7 +216,6 @@ export async function POST(req) {
         const description = sanitizeString(body.description || '', 1000)
         const category = sanitizeString(body.category, 200)     // free text — from admin's dynamic categories
         const subcategory = sanitizeString(body.subcategory || '', 200)
-        const brand = sanitizeString(body.brand || '', 100)
         const condition = VALID_CONDITIONS.includes(body.condition) ? body.condition : 'new'
         const stock = VALID_STOCK.includes(body.stock) ? body.stock : 'in_stock'
         const stockQty = body.stockQty !== undefined ? Math.max(0, parseInt(body.stockQty, 10) || 0) :
@@ -273,7 +270,7 @@ export async function POST(req) {
 
         const newProduct = {
             name, description,
-            category, subcategory, brand, sku,
+            category, subcategory, sku,
             condition, stock, stockQty, inventory, price, originalPrice, discount,
             features, specifications, customFields,
             images: [],
@@ -413,7 +410,6 @@ export async function PUT(req) {
         if (body.description !== undefined) updateData.description = sanitizeString(body.description, 1000)
         if (body.category !== undefined) updateData.category = sanitizeString(body.category, 200)
         if (body.subcategory !== undefined) updateData.subcategory = sanitizeString(body.subcategory, 200)
-        if (body.brand !== undefined) updateData.brand = sanitizeString(body.brand, 100)
         if (body.sku !== undefined) updateData.sku = sanitizeString(body.sku || '', 100)
         if (body.condition !== undefined && VALID_CONDITIONS.includes(body.condition)) updateData.condition = body.condition
         if (body.stock !== undefined && VALID_STOCK.includes(body.stock)) updateData.stock = body.stock
