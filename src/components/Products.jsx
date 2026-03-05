@@ -2,12 +2,24 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { products } from "@/data/products";
+import { Loader2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
 export default function Products() {
   const { addToCart } = useCart();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/product?limit=12")
+      .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+      .then((data) => setProducts(data.products || []))
+      .catch((err) => console.error("Failed to fetch products:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <section className="bg-cream/50">
       <div className="max-w-[1440px] mx-auto px-6 py-16">
@@ -24,82 +36,102 @@ export default function Products() {
         </motion.div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-7">
-          {products.map((product, i) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              whileHover={{ y: -8, rotateX: 2, rotateY: -1 }}
-              style={{ transformPerspective: 800 }}
-              className="bg-card-white rounded-xl overflow-hidden group shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(45,24,84,0.15)] transition-all duration-300 flex flex-col"
-            >
-              <Link href={`/product/${product.id}`} className="flex-1 flex flex-col">
-                {/* Image */}
-                <div className="relative h-36 sm:h-44 lg:h-56 bg-offwhite overflow-hidden">
-                  {product.badge && (
-                    <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-purple-soft text-purple-mid text-[9px] sm:text-[10px] font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full z-10">
-                      {product.badge}
-                    </span>
-                  )}
-                  <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-green-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full z-10">
-                    Save Tk {(product.originalPrice - product.price).toFixed(0)}
-                  </span>
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                  />
-                </div>
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="animate-spin text-purple-mid" size={32} />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-16 text-text-muted text-sm">No products available yet.</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-7">
+            {products.map((product, i) => {
+              const productId = String(product._id || product.id);
+              const brandName = product.customFields?.brand || product.category || product.brand || "";
+              const imageUrl =
+                product.images && product.images.length > 0
+                  ? product.images[0].url
+                  : product.image || "/placeholder.png";
+              const discountPct = product.discount ?? product.drop ?? 0;
+              const isAvailable = product.stock === "In Stock" || product.stock === "in_stock";
 
-                {/* Info */}
-                <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
-                  <p className="text-[10px] sm:text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product.brand}</p>
-                  <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 transition-colors">
-                    {product.name}
-                  </h3>
-                  <div className="mt-auto">
-                    {product.stock === "In Stock" ? (
-                      <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
-                        <span className="text-sm sm:text-lg font-bold text-gold-gradient">
-                          Tk {product.price.toFixed(2)}
+              return (
+                <motion.div
+                  key={productId}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: i * 0.05 }}
+                  whileHover={{ y: -8, rotateX: 2, rotateY: -1 }}
+                  style={{ transformPerspective: 800 }}
+                  className="bg-card-white rounded-xl overflow-hidden group shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(45,24,84,0.15)] transition-all duration-300 flex flex-col"
+                >
+                  <Link href={`/product/${productId}`} className="flex-1 flex flex-col">
+                    {/* Image */}
+                    <div className="relative h-36 sm:h-44 lg:h-56 bg-offwhite overflow-hidden">
+                      {product.badge && (
+                        <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-purple-soft text-purple-mid text-[9px] sm:text-[10px] font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full z-10">
+                          {product.badge}
                         </span>
-                        <span className="text-[10px] sm:text-xs text-text-muted line-through">
-                          Tk {product.originalPrice.toFixed(2)}
-                        </span>
+                      )}
+                      <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-green-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full z-10">
+                        Save Tk {((product.originalPrice || 0) - (product.price || 0)).toFixed(0)}
+                      </span>
+                      <Image
+                        src={imageUrl}
+                        alt={product.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                      />
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
+                      <p className="text-[10px] sm:text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{brandName}</p>
+                      <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 group-hover:text-purple-mid transition-colors">
+                        {product.name}
+                      </h3>
+                      <div className="mt-auto">
+                        {isAvailable ? (
+                          <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
+                            <span className="text-sm sm:text-lg font-bold text-gold-gradient">
+                              Tk {(product.price || 0).toFixed(2)}
+                            </span>
+                            <span className="text-[10px] sm:text-xs text-text-muted line-through">
+                              Tk {(product.originalPrice || 0).toFixed(2)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">
+                            {product.stock === "out_of_stock" ? "Out of Stock" : product.stock}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                  <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4 mt-auto">
+                    {isAvailable ? (
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <Link href={`/product/${productId}`} className="flex-1 border border-purple-mid text-purple-mid hover:bg-purple-soft text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors text-center">
+                          VIEW
+                        </Link>
+                        <button onClick={() => addToCart(productId)} className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
+                          ADD TO CART
+                        </button>
                       </div>
                     ) : (
-                      <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">
-                        {product.stock}
-                      </span>
+                      <button className="w-full bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>
+                        {product.stock === "out_of_stock" ? "Out of Stock" : product.stock}
+                      </button>
                     )}
                   </div>
-                </div>
-              </Link>
-              <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4 mt-auto">
-                {product.stock === "In Stock" ? (
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Link href={`/product/${product.id}`} className="flex-1 border border-purple-mid text-purple-mid hover:bg-purple-soft text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors text-center">
-                      VIEW
-                    </Link>
-                    <button onClick={() => addToCart(product.id)} className="flex-1 bg-purple-dark hover:scale-[1.03] hover:bg-[#2a2a2a] text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-all duration-200">
-                      <span className="text-gold-gradient">ADD TO CART</span>
-                    </button>
-                  </div>
-                ) : (
-                  <button className="w-full bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>
-                    {product.stock}
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );
 }
+
