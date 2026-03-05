@@ -5,10 +5,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Search, ShoppingCart, ChevronDown, ChevronRight, X, User, LogOut, Menu, Home, TrendingUp, HeadphonesIcon, Info } from "lucide-react";
-import { categories } from "@/data/categories";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/hooks/useAuth";
 import Swal from "sweetalert2";
+
+// Convert a category name to a URL-friendly slug
+function toSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
 
 const navLinks = [
   { label: "Trending", href: "/trending" },
@@ -28,8 +32,17 @@ export default function Navbar() {
   const [signingOut, setSigningOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedMobileCategory, setExpandedMobileCategory] = useState(null);
+  const [categories, setCategories] = useState([]);
   const searchRef = useRef(null);
   const { cartCount } = useCart();
+
+  // Fetch categories from DB
+  useEffect(() => {
+    fetch("/api/category")
+      .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+      .then((data) => setCategories(data.categories || []))
+      .catch((err) => console.error("Failed to load categories:", err));
+  }, []);
 
   const isCategoryActive = pathname.startsWith("/category");
 
@@ -120,9 +133,8 @@ export default function Navbar() {
               onMouseEnter={() => setShowCategories(true)}
               onMouseLeave={() => { setShowCategories(false); setActiveCategory(null); }}
             >
-              <button className={`flex items-center gap-1.5 text-sm font-semibold transition-colors relative pb-0.5 ${
-                isCategoryActive ? "text-purple-mid" : "text-text-primary hover:text-purple-mid"
-              }`}>
+              <button className={`flex items-center gap-1.5 text-sm font-semibold transition-colors relative pb-0.5 ${isCategoryActive ? "text-purple-mid" : "text-text-primary hover:text-purple-mid"
+                }`}>
                 All Categories
                 <ChevronDown size={14} className={`transition-transform duration-200 ${showCategories ? "rotate-180" : ""}`} />
                 {isCategoryActive && (
@@ -144,15 +156,14 @@ export default function Navbar() {
                       <div className="w-64 py-2 border-r border-gray-100">
                         {categories.map((cat, i) => (
                           <Link
-                            key={cat.name}
-                            href={`/category/${cat.slug}`}
+                            key={String(cat._id || cat.name)}
+                            href={`/category/${toSlug(cat.name)}`}
                             onMouseEnter={() => setActiveCategory(i)}
                             onClick={() => { setShowCategories(false); setActiveCategory(null); }}
-                            className={`flex items-center justify-between px-5 py-3 cursor-pointer transition-colors ${
-                              activeCategory === i
+                            className={`flex items-center justify-between px-5 py-3 cursor-pointer transition-colors ${activeCategory === i
                                 ? "bg-purple-soft text-purple-dark"
                                 : "text-text-primary hover:bg-gray-50"
-                            }`}
+                              }`}
                           >
                             <span className="text-sm">{cat.name}</span>
                             <ChevronRight size={14} className="text-text-muted" />
@@ -172,16 +183,16 @@ export default function Navbar() {
                             className="w-56 py-2"
                           >
                             <Link
-                              href={`/category/${categories[activeCategory].slug}`}
+                              href={`/category/${toSlug(categories[activeCategory].name)}`}
                               onClick={() => { setShowCategories(false); setActiveCategory(null); }}
                               className="block px-5 py-2 text-[11px] font-semibold text-purple-mid uppercase tracking-wider hover:text-purple-dark transition-colors"
                             >
                               View All {categories[activeCategory].name}
                             </Link>
-                            {categories[activeCategory].subcategories.map((sub) => (
+                            {(categories[activeCategory].subcategories || []).map((sub) => (
                               <Link
-                                key={sub.slug}
-                                href={`/category/${sub.slug}`}
+                                key={String(sub._id || sub.name)}
+                                href={`/category/${toSlug(sub.name)}`}
                                 onClick={() => { setShowCategories(false); setActiveCategory(null); }}
                                 className="block px-5 py-2.5 text-sm text-text-secondary hover:text-purple-dark hover:bg-purple-soft/40 transition-colors"
                               >
@@ -210,9 +221,8 @@ export default function Navbar() {
                 >
                   <Link
                     href={link.href}
-                    className={`text-sm font-semibold transition-colors pb-0.5 ${
-                      isActive ? "text-purple-mid" : "text-text-primary hover:text-purple-mid"
-                    }`}
+                    className={`text-sm font-semibold transition-colors pb-0.5 ${isActive ? "text-purple-mid" : "text-text-primary hover:text-purple-mid"
+                      }`}
                   >
                     {link.label}
                   </Link>
@@ -508,12 +518,11 @@ export default function Navbar() {
               <div className="py-2">
                 <p className="px-4 py-2 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Categories</p>
                 {categories.map((cat, i) => (
-                  <div key={cat.slug}>
+                  <div key={String(cat._id || cat.name)}>
                     <button
                       onClick={() => setExpandedMobileCategory(expandedMobileCategory === i ? null : i)}
-                      className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors ${
-                        expandedMobileCategory === i ? "text-purple-mid font-semibold bg-purple-soft/30" : "text-text-primary hover:bg-gray-50"
-                      }`}
+                      className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors ${expandedMobileCategory === i ? "text-purple-mid font-semibold bg-purple-soft/30" : "text-text-primary hover:bg-gray-50"
+                        }`}
                     >
                       {cat.name}
                       <ChevronDown
@@ -532,16 +541,16 @@ export default function Navbar() {
                           className="overflow-hidden bg-gray-50/50"
                         >
                           <Link
-                            href={`/category/${cat.slug}`}
+                            href={`/category/${toSlug(cat.name)}`}
                             onClick={() => setMobileMenuOpen(false)}
                             className="block px-6 py-2.5 text-xs font-semibold text-purple-mid uppercase tracking-wider hover:text-purple-dark transition-colors"
                           >
                             View All {cat.name}
                           </Link>
-                          {cat.subcategories.map((sub) => (
+                          {(cat.subcategories || []).map((sub) => (
                             <Link
-                              key={sub.slug}
-                              href={`/category/${sub.slug}`}
+                              key={String(sub._id || sub.name)}
+                              href={`/category/${toSlug(sub.name)}`}
                               onClick={() => setMobileMenuOpen(false)}
                               className="block px-6 py-2.5 text-sm text-text-secondary hover:text-purple-dark hover:bg-purple-soft/30 transition-colors"
                             >
@@ -561,9 +570,8 @@ export default function Navbar() {
                 <Link
                   href="/support"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                    pathname === "/support" ? "text-purple-mid font-semibold" : "text-text-primary hover:bg-gray-50"
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${pathname === "/support" ? "text-purple-mid font-semibold" : "text-text-primary hover:bg-gray-50"
+                    }`}
                 >
                   <HeadphonesIcon size={18} className="text-text-muted" />
                   Support
@@ -571,9 +579,8 @@ export default function Navbar() {
                 <Link
                   href="/about"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                    pathname === "/about" ? "text-purple-mid font-semibold" : "text-text-primary hover:bg-gray-50"
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${pathname === "/about" ? "text-purple-mid font-semibold" : "text-text-primary hover:bg-gray-50"
+                    }`}
                 >
                   <Info size={18} className="text-text-muted" />
                   About Us
@@ -642,9 +649,8 @@ export default function Navbar() {
               <Link
                 key={item.label}
                 href={item.href || "/login"}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1 relative transition-colors ${
-                  isActive ? "text-purple-mid" : "text-text-muted"
-                }`}
+                className={`flex flex-col items-center gap-0.5 px-3 py-1 relative transition-colors ${isActive ? "text-purple-mid" : "text-text-muted"
+                  }`}
               >
                 <div className="relative">
                   <Icon size={22} />
