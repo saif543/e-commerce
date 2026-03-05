@@ -1,18 +1,20 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-purple-dark: #2D1854;
-  --color-purple-mid: #4C1D95;
-  --color-purple-light: #7C3AED;
-  --color-purple-accent: #A855F7;
-  --color-purple-soft: #EDE9FE;
-  --color-purple-muted: #DDD6FE;
+  --color-purple-dark: #1a1a1a;
+  --color-purple-mid: #B8860B;
+  --color-purple-light: #D4A843;
+  --color-purple-accent: #E6C068;
+  --color-purple-soft: #FDF6E3;
+  --color-purple-muted: #F5E6C8;
   --color-offwhite: #FAFAF8;
   --color-cream: #F5F3EF;
   --color-card-white: #FFFFFF;
-  --color-text-primary: #1a1a2e;
+  --color-text-primary: #1a1a1a;
   --color-text-secondary: #6B7280;
   --color-text-muted: #9CA3AF;
+  --color-gold-start: #B8860B;
+  --color-gold-end: #E6C068;
   --font-sans: var(--font-poppins);
   --font-serif: Georgia, "Times New Roman", serif;
 }
@@ -34,6 +36,17 @@ html {
   width: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-purple-mid);
+  background: linear-gradient(180deg, var(--color-gold-start), var(--color-gold-end));
   border-radius: 4px;
+}
+
+/* Gold gradient utility */
+.bg-gold-gradient {
+  background: linear-gradient(135deg, var(--color-gold-start), var(--color-gold-end));
+}
+.text-gold-gradient {
+  background: linear-gradient(135deg, var(--color-gold-start), var(--color-gold-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }

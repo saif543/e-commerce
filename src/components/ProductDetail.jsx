@@ -4,17 +4,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Heart, Star, ChevronLeft, ChevronRight, Minus, Plus, ArrowLeft } from "lucide-react";
+import { ShoppingCart, Star, ChevronLeft, ChevronRight, Minus, Plus, ArrowLeft } from "lucide-react";
 import { products } from "@/data/products";
 import { useCart } from "@/context/CartContext";
-import { useWishlist } from "@/context/WishlistContext";
 
 export default function ProductDetail({ product }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [qty, setQty] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
   const { addToCart } = useCart();
-  const { toggleWishlist, isInWishlist } = useWishlist();
 
   const relatedProducts = products.filter((p) => p.id !== product.id).slice(0, 4);
 
@@ -119,7 +117,7 @@ export default function ProductDetail({ product }) {
           )}
 
           {/* Brand */}
-          <p className="text-purple-mid text-xs font-semibold uppercase tracking-wider mb-2">{product.brand}</p>
+          <p className="text-gold-gradient text-xs font-semibold uppercase tracking-wider mb-2">{product.brand}</p>
 
           {/* Name */}
           <h1 className="font-serif text-3xl md:text-4xl text-text-primary mb-5 leading-tight">{product.name}</h1>
@@ -136,7 +134,7 @@ export default function ProductDetail({ product }) {
 
           {/* Price */}
           <div className="flex items-baseline gap-3 mb-2">
-            <span className="text-4xl font-bold text-orange-600">Tk {product.price.toFixed(2)}</span>
+            <span className="text-4xl font-bold text-gold-gradient">Tk {product.price.toFixed(2)}</span>
             <span className="text-lg text-text-muted line-through">Tk {product.originalPrice.toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-3 mb-8">
@@ -200,16 +198,6 @@ export default function ProductDetail({ product }) {
             >
               <ShoppingCart size={18} />
               Add to Cart — Tk {(product.price * qty).toFixed(2)}
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => toggleWishlist(product.id)}
-              className={`w-14 h-14 border rounded-xl flex items-center justify-center transition-colors ${
-                isInWishlist(product.id) ? "border-red-300 bg-red-50 text-red-500" : "border-gray-200 text-text-secondary hover:text-red-500 hover:border-red-200"
-              }`}
-            >
-              <Heart size={20} className={isInWishlist(product.id) ? "fill-red-500" : ""} />
             </motion.button>
           </div>
         </div>
@@ -323,12 +311,12 @@ export default function ProductDetail({ product }) {
                   />
                 </div>
                 <div className="p-4">
-                  <p className="text-[11px] text-purple-mid font-semibold uppercase tracking-wider mb-1">{rp.brand}</p>
-                  <h3 className="text-sm font-semibold text-text-primary mb-2 leading-snug line-clamp-2 group-hover:text-purple-dark transition-colors">
+                  <p className="text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-1">{rp.brand}</p>
+                  <h3 className="text-sm font-semibold text-text-primary mb-2 leading-snug line-clamp-2 group-hover:text-purple-mid transition-colors">
                     {rp.name}
                   </h3>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-bold text-orange-600">Tk {rp.price.toFixed(2)}</span>
+                    <span className="text-lg font-bold text-gold-gradient">Tk {rp.price.toFixed(2)}</span>
                     <span className="text-xs text-text-muted line-through">Tk {rp.originalPrice.toFixed(2)}</span>
                   </div>
                 </div>

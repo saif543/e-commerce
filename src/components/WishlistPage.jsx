@@ -69,16 +69,16 @@ export default function WishlistPage() {
                     />
                   </div>
                   <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
-                    <p className="text-[10px] sm:text-[11px] text-purple-mid font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">
+                    <p className="text-[10px] sm:text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">
                       {product.brand}
                     </p>
-                    <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 group-hover:text-purple-dark transition-colors">
+                    <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 group-hover:text-purple-mid transition-colors">
                       {product.name}
                     </h3>
                     <div className="mt-auto">
                       {product.stock === "In Stock" ? (
                         <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
-                          <span className="text-sm sm:text-lg font-bold text-orange-600">
+                          <span className="text-sm sm:text-lg font-bold text-gold-gradient">
                             Tk {product.price.toFixed(2)}
                           </span>
                           <span className="text-[10px] sm:text-xs text-text-muted line-through">

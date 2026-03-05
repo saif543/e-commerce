@@ -4,8 +4,7 @@ import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ChevronDown, Grid3X3, LayoutList, Star, SlidersHorizontal, X, Heart } from "lucide-react";
-import { useWishlist } from "@/context/WishlistContext";
+import { ChevronRight, ChevronDown, Grid3X3, LayoutList, Star, SlidersHorizontal, X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { products } from "@/data/products";
 
@@ -196,7 +195,6 @@ export default function CategoryPage({ categoryName, parentName, parentSlug, sub
     setOpenFilter((prev) => (prev === key ? null : key));
   };
 
-  const { toggleWishlist, isInWishlist } = useWishlist();
   const { addToCart } = useCart();
   const allBrands = [...new Set(products.map((p) => p.brand))];
   const connectivityOptions = ["Wireless", "Bluetooth", "USB-C", "Wi-Fi", "NFC", "3.5mm Jack"];
@@ -502,14 +500,14 @@ export default function CategoryPage({ categoryName, parentName, parentSlug, sub
                       />
                     </div>
                     <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
-                      <p className="text-[10px] sm:text-[11px] text-purple-mid font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product.brand}</p>
-                      <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 group-hover:text-purple-dark transition-colors">
+                      <p className="text-[10px] sm:text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product.brand}</p>
+                      <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 group-hover:text-purple-mid transition-colors">
                         {product.name}
                       </h3>
                       <div className="mt-auto">
                         {product.stock === "In Stock" ? (
                           <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
-                            <span className="text-sm sm:text-lg font-bold text-orange-600">Tk {product.price.toFixed(2)}</span>
+                            <span className="text-sm sm:text-lg font-bold text-gold-gradient">Tk {product.price.toFixed(2)}</span>
                             <span className="text-[10px] sm:text-xs text-text-muted line-through">Tk {product.originalPrice.toFixed(2)}</span>
                           </div>
                         ) : (
@@ -521,23 +519,20 @@ export default function CategoryPage({ categoryName, parentName, parentSlug, sub
                     </div>
                   </Link>
                   <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4 mt-auto">
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      {product.stock === "In Stock" ? (
+                    {product.stock === "In Stock" ? (
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <Link href={`/product/${product.id}`} className="flex-1 border border-purple-mid text-purple-mid hover:bg-purple-soft text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors text-center">
+                          VIEW
+                        </Link>
                         <button onClick={() => addToCart(product.id)} className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
-                          Add to Cart
+                          ADD TO CART
                         </button>
-                      ) : (
-                        <button className="flex-1 bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>
-                          {product.stock}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => toggleWishlist(product.id)}
-                        className="p-2 rounded-md border border-gray-200 hover:border-purple-mid transition-colors"
-                      >
-                        <Heart size={14} className={isInWishlist(product.id) ? "fill-red-500 text-red-500" : "text-text-muted"} />
+                      </div>
+                    ) : (
+                      <button className="w-full bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>
+                        {product.stock}
                       </button>
-                    </div>
+                    )}
                   </div>
                 </motion.div>
               ))}

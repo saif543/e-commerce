@@ -4,15 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Heart, ShoppingCart, ChevronDown, ChevronRight, X, User, LogOut } from "lucide-react";
+import { Search, ShoppingCart, ChevronDown, ChevronRight, X, User, LogOut } from "lucide-react";
 import { categories } from "@/data/categories";
-import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/hooks/useAuth";
 import Swal from "sweetalert2";
 
 const navLinks = [
-  { label: "BRANDS", href: "/brands" },
   { label: "TRENDING", href: "/trending" },
   { label: "SUPPORT", href: "/support" },
   { label: "ABOUT US", href: "/about" },
@@ -29,7 +27,6 @@ export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const searchRef = useRef(null);
-  const { wishlist } = useWishlist();
   const { cartCount } = useCart();
 
   const isCategoryActive = pathname.startsWith("/category");
@@ -242,14 +239,6 @@ export default function Navbar() {
                       )}
                     </div>
                     <div className="py-2">
-                      <Link
-                        href="/wishlist"
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary hover:bg-gray-50 hover:text-purple-mid transition-colors"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <Heart size={18} />
-                        Wishlist
-                      </Link>
                       {userRole === 'admin' && (
                         <Link
                           href="/admin"
@@ -329,16 +318,6 @@ export default function Navbar() {
                 </motion.button>
               )}
             </div>
-            <Link href="/wishlist">
-              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} className="relative text-text-primary hover:text-purple-mid transition-colors">
-                <Heart size={22} className={wishlist.length > 0 ? "fill-red-500 text-red-500" : ""} />
-                {wishlist.length > 0 && (
-                  <span className="absolute -top-2 -right-2.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                    {wishlist.length}
-                  </span>
-                )}
-              </motion.button>
-            </Link>
             <Link href="/cart">
               <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} className="relative text-text-primary hover:text-purple-mid transition-colors">
                 <ShoppingCart size={22} />
