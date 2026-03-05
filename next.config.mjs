@@ -39,6 +39,8 @@ const nextConfig = {
         ]
     },
 
+    turbopack: {},
+
     webpack(config, { dev }) {
         if (dev) {
             config.module.rules.unshift({
