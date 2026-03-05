@@ -310,8 +310,10 @@ export default function Navbar() {
               </div>
             ) : (
               /* Login Button */
-              <Link href="/login" className="text-sm font-semibold text-text-primary hover:text-purple-mid transition-colors">
-                Login/Register
+              <Link href="/login" className="relative text-sm font-semibold px-4 py-1.5 rounded-full bg-black hover:bg-black/85 transition-all group">
+                <span className="bg-gradient-to-r from-[#C4A265] via-[#D4B978] to-[#C4A265] bg-clip-text text-transparent">
+                  Login / Register
+                </span>
               </Link>
             )}
 

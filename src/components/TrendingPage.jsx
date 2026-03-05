@@ -377,17 +377,17 @@ export default function TrendingPage() {
                             Save Tk {product._savedAmount.toFixed(0)}
                           </span>
                         )}
-                        <Image src={product._image} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 25vw" />
+                        <Image src={product._image} alt={product.name} fill className="object-contain group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 25vw" />
                       </div>
                       <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
-                        <p className="text-[10px] sm:text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product._brand}</p>
-                        <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 transition-colors">
+                        <p className="text-[10px] sm:text-[11px] text-text-muted font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product._brand}</p>
+                        <h3 className="text-xs sm:text-sm font-normal text-text-primary/85 mb-2 sm:mb-3 leading-snug line-clamp-2">
                           {product.name}
                         </h3>
                         <div className="mt-auto">
                           {product._isInStock ? (
                             <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
-                              <span className="text-sm sm:text-lg font-bold text-gold-gradient">Tk {product._normalPrice.toFixed(2)}</span>
+                              <span className="text-sm sm:text-lg font-bold text-text-primary">Tk {product._normalPrice.toFixed(2)}</span>
                               {product._savedAmount > 0 && (
                                 <span className="text-[10px] sm:text-xs text-text-muted line-through">Tk {product._regularPrice.toFixed(2)}</span>
                               )}

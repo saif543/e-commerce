@@ -124,8 +124,8 @@ export default function Products() {
                         <Link href={`/product/${productId}`} className="flex-1 border border-purple-mid text-purple-mid hover:bg-purple-soft text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors text-center">
                           VIEW
                         </Link>
-                        <button onClick={() => addToCart(productId)} className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
-                          ADD TO CART
+                        <button onClick={() => addToCart(productId)} className="flex-1 bg-black hover:bg-black/85 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-all">
+                          <span className="bg-gradient-to-r from-[#C4A265] via-[#D4B978] to-[#C4A265] bg-clip-text text-transparent">ADD TO CART</span>
                         </button>
                       </div>
                     ) : (
