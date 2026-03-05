@@ -16,6 +16,9 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
+function formatPrice(n) {
+  return Math.round(n).toLocaleString("en-IN");
+}
 export default function ProductDetail({ product, relatedProducts = [] }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [qty, setQty] = useState(1);
@@ -187,15 +190,15 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
           {/* Price Box */}
           <div className="bg-purple-soft/50 rounded-xl px-5 py-4 mb-5">
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-bold text-text-primary">Tk {salePrice.toFixed(2)}</span>
+              <span className="text-3xl font-semibold text-text-primary">Tk {formatPrice(salePrice)}</span>
               {savedAmount > 0 && (
-                <span className="text-base text-text-muted line-through">Tk {regularPrice.toFixed(2)}</span>
+                <span className="text-base text-text-muted line-through">Tk {formatPrice(regularPrice)}</span>
               )}
             </div>
             {savedAmount > 0 && (
               <div className="flex items-center gap-3 mt-2">
                 <span className="text-sm text-green-600 font-semibold">
-                  Save Tk {savedAmount.toFixed(0)}
+                  Save Tk {formatPrice(savedAmount)}
                 </span>
                 <span className="bg-red-500 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
                   -{discountPct}%
@@ -272,7 +275,7 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
             >
               <ShoppingCart size={18} className="text-[#C4A265]" />
               <span className="bg-gradient-to-r from-[#C4A265] via-[#D4B978] to-[#C4A265] bg-clip-text text-transparent">
-                Add to Cart — Tk {(salePrice * qty).toFixed(2)}
+                Add to Cart — Tk {formatPrice(salePrice * qty)}
               </span>
             </motion.button>
             <motion.button
@@ -427,7 +430,7 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
                       )}
                       {rpSaved > 0 && (
                         <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-green-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full z-10">
-                          Save Tk {rpSaved.toFixed(0)}
+                          Save Tk {formatPrice(rpSaved)}
                         </span>
                       )}
                       <Image
@@ -446,12 +449,12 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
                         {rp.name}
                       </h3>
                       <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
-                        <span className="text-sm sm:text-lg font-bold text-text-primary">
-                          Tk {rpSale.toFixed(2)}
+                        <span className="text-sm sm:text-lg font-semibold text-text-primary">
+                          Tk {formatPrice(rpSale)}
                         </span>
                         {rpSaved > 0 && (
                           <span className="text-[10px] sm:text-xs text-text-muted line-through">
-                            Tk {rpRegular.toFixed(2)}
+                            Tk {formatPrice(rpRegular)}
                           </span>
                         )}
                       </div>
@@ -468,7 +471,7 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex items-center gap-3 z-50 lg:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex-1 min-w-0">
           <p className="text-xs text-text-muted truncate">{product.name}</p>
-          <p className="text-base font-bold text-text-primary">Tk {(salePrice * qty).toFixed(2)}</p>
+          <p className="text-base font-semibold text-text-primary">Tk {formatPrice(salePrice * qty)}</p>
         </div>
         <button
           onClick={() => addToCart(productId, qty)}
