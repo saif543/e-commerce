@@ -194,10 +194,10 @@ export default function ProductDetail({ product }) {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => addToCart(product.id, qty)}
-              className="flex-1 bg-purple-dark hover:bg-purple-mid text-white py-4 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+              className="flex-1 bg-purple-dark hover:bg-[#2a2a2a] py-4 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2"
             >
-              <ShoppingCart size={18} />
-              Add to Cart — Tk {(product.price * qty).toFixed(2)}
+              <ShoppingCart size={18} className="text-[#B8860B]" />
+              <span className="text-gold-gradient">Add to Cart — Tk {(product.price * qty).toFixed(2)}</span>
             </motion.button>
           </div>
         </div>
@@ -312,7 +312,7 @@ export default function ProductDetail({ product }) {
                 </div>
                 <div className="p-4">
                   <p className="text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-1">{rp.brand}</p>
-                  <h3 className="text-sm font-semibold text-text-primary mb-2 leading-snug line-clamp-2 group-hover:text-purple-mid transition-colors">
+                  <h3 className="text-sm font-semibold text-text-primary mb-2 leading-snug line-clamp-2 transition-colors">
                     {rp.name}
                   </h3>
                   <div className="flex items-baseline gap-2">

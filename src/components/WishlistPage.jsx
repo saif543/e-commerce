@@ -72,7 +72,7 @@ export default function WishlistPage() {
                     <p className="text-[10px] sm:text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">
                       {product.brand}
                     </p>
-                    <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 group-hover:text-purple-mid transition-colors">
+                    <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 transition-colors">
                       {product.name}
                     </h3>
                     <div className="mt-auto">
@@ -96,8 +96,8 @@ export default function WishlistPage() {
                 <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4 mt-auto">
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     {product.stock === "In Stock" ? (
-                      <button onClick={() => addToCart(product.id)} className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
-                        Add to Cart
+                      <button onClick={() => addToCart(product.id)} className="flex-1 bg-purple-dark hover:scale-[1.03] hover:bg-[#2a2a2a] text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-all duration-200">
+                        <span className="text-gold-gradient">Add to Cart</span>
                       </button>
                     ) : (
                       <button className="flex-1 bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>

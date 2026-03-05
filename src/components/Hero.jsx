@@ -159,7 +159,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative w-full h-[420px] md:h-[480px] lg:h-[520px] overflow-hidden cursor-grab active:cursor-grabbing select-none">
+    <section className="relative w-full h-[260px] sm:h-[320px] md:h-[380px] lg:h-[420px] overflow-hidden cursor-grab active:cursor-grabbing select-none">
       {/* Background Images — slide left/right */}
       <AnimatePresence initial={false} custom={direction} mode="popLayout">
         <motion.div
@@ -196,7 +196,7 @@ export default function Hero() {
       </AnimatePresence>
 
       {/* Content — slides with image */}
-      <div className="relative z-10 h-full max-w-[1440px] mx-auto px-8 md:px-12 flex items-center pointer-events-none">
+      <div className="relative z-10 h-full max-w-[1440px] mx-auto px-5 md:px-12 flex items-center pointer-events-none">
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={current}
@@ -209,7 +209,7 @@ export default function Hero() {
             {/* Badge / Subtitle */}
             {slide.badge && (
               <span
-                className="inline-block bg-white/20 backdrop-blur-sm text-xs font-semibold px-4 py-1.5 rounded-full mb-5 tracking-wide border border-white/15"
+                className="inline-block bg-white/20 backdrop-blur-sm text-[10px] md:text-xs font-semibold px-3 md:px-4 py-1 md:py-1.5 rounded-full mb-3 md:mb-5 tracking-wide border border-white/15"
                 style={{ color: slide.badgeColor }}
               >
                 {slide.badge}
@@ -219,9 +219,9 @@ export default function Hero() {
             {/* Title */}
             {slide.title && (
               <h1
-                className="font-serif leading-[1.08] mb-4 whitespace-pre-line"
+                className="font-serif leading-[1.08] mb-2 md:mb-4 whitespace-pre-line"
                 style={{
-                  fontSize: `clamp(28px, ${slide.titleSize}px, ${slide.titleSize}px)`,
+                  fontSize: `clamp(20px, 5vw, ${slide.titleSize}px)`,
                   color: slide.titleColor,
                   textShadow: "0 2px 12px rgba(0,0,0,0.7), 0 0px 40px rgba(0,0,0,0.4)",
                 }}
@@ -233,9 +233,9 @@ export default function Hero() {
             {/* Description */}
             {slide.desc && (
               <p
-                className="leading-relaxed mb-7 max-w-md"
+                className="leading-relaxed mb-4 md:mb-7 max-w-md hidden sm:block"
                 style={{
-                  fontSize: `${slide.descSize}px`,
+                  fontSize: `clamp(13px, 2vw, ${slide.descSize}px)`,
                   color: slide.descColor,
                   textShadow: "0 1px 8px rgba(0,0,0,0.6), 0 0px 30px rgba(0,0,0,0.3)",
                 }}
@@ -252,9 +252,9 @@ export default function Hero() {
                     <motion.button
                       whileHover={{ scale: 1.04 }}
                       whileTap={{ scale: 0.96 }}
-                      className="px-8 py-3.5 rounded-md font-semibold transition-colors shadow-lg"
+                      className="px-5 md:px-8 py-2.5 md:py-3.5 rounded-md font-semibold transition-colors shadow-lg text-sm md:text-base"
                       style={{
-                        fontSize: `${slide.ctaSize}px`,
+                        fontSize: undefined,
                         backgroundColor: slide.ctaBg,
                         color: slide.ctaColor,
                       }}
@@ -266,9 +266,9 @@ export default function Hero() {
                   <motion.button
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.96 }}
-                    className="px-8 py-3.5 rounded-md font-semibold transition-colors shadow-lg"
+                    className="px-5 md:px-8 py-2.5 md:py-3.5 rounded-md font-semibold transition-colors shadow-lg text-sm md:text-base"
                     style={{
-                      fontSize: `${slide.ctaSize}px`,
+                      fontSize: undefined,
                       backgroundColor: slide.ctaBg,
                       color: slide.ctaColor,
                     }}
@@ -284,7 +284,7 @@ export default function Hero() {
                     <motion.button
                       whileHover={{ scale: 1.04 }}
                       whileTap={{ scale: 0.96 }}
-                      className="px-6 py-3.5 rounded-md text-sm font-medium transition-colors border border-white/20 backdrop-blur-sm"
+                      className="px-4 md:px-6 py-2.5 md:py-3.5 rounded-md text-xs md:text-sm font-medium transition-colors border border-white/20 backdrop-blur-sm"
                       style={{
                         backgroundColor: slide.secondCtaBg,
                         color: slide.secondCtaColor,
@@ -297,7 +297,7 @@ export default function Hero() {
                   <motion.button
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.96 }}
-                    className="px-6 py-3.5 rounded-md text-sm font-medium transition-colors border border-white/20 backdrop-blur-sm"
+                    className="px-4 md:px-6 py-2.5 md:py-3.5 rounded-md text-xs md:text-sm font-medium transition-colors border border-white/20 backdrop-blur-sm"
                     style={{
                       backgroundColor: slide.secondCtaBg,
                       color: slide.secondCtaColor,
