@@ -5,8 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ChevronDown, Grid3X3, LayoutList, Star, SlidersHorizontal, X, Loader2 } from "lucide-react";
+import { ChevronRight, ChevronDown, Grid3X3, LayoutList, SlidersHorizontal, X, Loader2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import ProductCard from "./ProductCard";
+
+function formatPrice(n) {
+    return Math.round(n).toLocaleString("en-IN");
+}
 
 const sortOptions = [
     { label: "Default", value: "default" },
@@ -52,9 +57,7 @@ function FilterContent({
     openFilter, toggleFilter,
     priceMin, priceMax, setPriceMin, setPriceMax,
     allBrands, selectedBrands, setSelectedBrands,
-    connectivityOptions, selectedConnectivity, setSelectedConnectivity,
     selectedDiscount, setSelectedDiscount,
-    conditionOptions, selectedCondition, setSelectedCondition,
     availabilityOptions, selectedAvailability, setSelectedAvailability,
     toggleItem,
     maxPriceLimit,
@@ -77,8 +80,7 @@ function FilterContent({
                     {allBrands.map((brand) => (
                         <label key={brand} className="flex items-center gap-3 cursor-pointer group">
                             <div
-                                className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedBrands.includes(brand) ? "bg-purple-mid border-purple-mid" : "border-gray-300 group-hover:border-purple-light"
-                                    }`}
+                                className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedBrands.includes(brand) ? "bg-purple-mid border-purple-mid" : "border-gray-300 group-hover:border-purple-light"}`}
                                 onClick={() => toggleItem(selectedBrands, setSelectedBrands, brand)}
                             >
                                 {selectedBrands.includes(brand) && (
@@ -99,8 +101,7 @@ function FilterContent({
                         <button
                             key={d}
                             onClick={() => setSelectedDiscount(selectedDiscount === d ? null : d)}
-                            className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-lg text-sm transition-colors ${selectedDiscount === d ? "bg-purple-soft text-purple-dark font-medium" : "text-text-secondary hover:bg-gray-50"
-                                }`}
+                            className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-lg text-sm transition-colors ${selectedDiscount === d ? "bg-purple-soft text-purple-dark font-medium" : "text-text-secondary hover:bg-gray-50"}`}
                         >
                             {d}% or more
                         </button>
@@ -113,8 +114,7 @@ function FilterContent({
                     {availabilityOptions.map((opt) => (
                         <label key={opt} className="flex items-center gap-3 cursor-pointer group">
                             <div
-                                className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedAvailability.includes(opt) ? "bg-purple-mid border-purple-mid" : "border-gray-300 group-hover:border-purple-light"
-                                    }`}
+                                className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedAvailability.includes(opt) ? "bg-purple-mid border-purple-mid" : "border-gray-300 group-hover:border-purple-light"}`}
                                 onClick={() => toggleItem(selectedAvailability, setSelectedAvailability, opt)}
                             >
                                 {selectedAvailability.includes(opt) && (
@@ -151,7 +151,6 @@ export default function ProductsView() {
     const [priceMin, setPriceMin] = useState(0);
     const [priceMax, setPriceMax] = useState(9999999);
     const [selectedBrands, setSelectedBrands] = useState([]);
-    const [selectedConnectivity, setSelectedConnectivity] = useState([]);
     const [selectedDiscount, setSelectedDiscount] = useState(null);
     const [selectedAvailability, setSelectedAvailability] = useState([]);
     const [selectedCondition, setSelectedCondition] = useState([]);
@@ -198,13 +197,10 @@ export default function ProductsView() {
         return Math.max(...products.map(p => p.price || 0));
     }, [products]);
 
-    const connectivityOptions = ["Wireless", "Bluetooth", "USB-C", "Wi-Fi", "NFC", "3.5mm Jack"];
-    const conditionOptions = ["Brand New", "Refurbished", "Open Box"];
     const availabilityOptions = ["In Stock", "Out of Stock"];
 
     const hasActiveFilters =
         selectedBrands.length > 0 ||
-        selectedConnectivity.length > 0 ||
         selectedDiscount !== null ||
         selectedAvailability.length > 0 ||
         selectedCondition.length > 0 ||
@@ -214,7 +210,6 @@ export default function ProductsView() {
         setPriceMin(0);
         setPriceMax(maxPriceLimit);
         setSelectedBrands([]);
-        setSelectedConnectivity([]);
         setSelectedDiscount(null);
         setSelectedAvailability([]);
         setSelectedCondition([]);
@@ -256,7 +251,6 @@ export default function ProductsView() {
                 return false;
             });
         }
-
         if (selectedCondition.length > 0) {
             sorted = sorted.filter((p) => selectedCondition.includes(p.condition || p.customFields?.condition));
         }
@@ -264,16 +258,25 @@ export default function ProductsView() {
         return sorted;
     }, [sortBy, selectedBrands, priceMin, priceMax, selectedDiscount, selectedAvailability, selectedCondition, products]);
 
+    const filterContentProps = {
+        openFilter, toggleFilter,
+        priceMin, priceMax, setPriceMin, setPriceMax,
+        allBrands, selectedBrands, setSelectedBrands,
+        selectedDiscount, setSelectedDiscount,
+        availabilityOptions, selectedAvailability, setSelectedAvailability,
+        toggleItem, maxPriceLimit,
+    };
+
     return (
-        <section className="max-w-[1440px] mx-auto px-6 py-8">
+        <section className="max-w-[1440px] mx-auto px-2 min-[480px]:px-4 min-[640px]:px-5 min-[768px]:px-6 py-6 min-[768px]:py-8">
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm text-text-muted mb-6">
+            <div className="flex items-center gap-1.5 min-[480px]:gap-2 text-[10px] min-[480px]:text-xs min-[768px]:text-sm text-text-muted mb-4 min-[768px]:mb-6">
                 <Link href="/" className="hover:text-purple-mid transition-colors">Home</Link>
-                <ChevronRight size={14} />
+                <ChevronRight size={12} className="min-[768px]:w-[14px] min-[768px]:h-[14px]" />
                 {categoryParam && subcategoryParam ? (
                     <>
                         <Link href={`/products?category=${encodeURIComponent(categoryParam)}`} className="hover:text-purple-mid transition-colors">{categoryParam}</Link>
-                        <ChevronRight size={14} />
+                        <ChevronRight size={12} className="min-[768px]:w-[14px] min-[768px]:h-[14px]" />
                         <span className="text-text-primary font-medium">{subcategoryParam}</span>
                     </>
                 ) : (
@@ -282,11 +285,9 @@ export default function ProductsView() {
             </div>
 
             {/* Title */}
-            <div className="mb-8">
-                <h1 className="font-serif text-3xl md:text-4xl text-text-primary mb-2">{pageTitle}</h1>
-                <p className="text-text-secondary text-base">
-                    {pageDescription}
-                </p>
+            <div className="mb-5 min-[768px]:mb-8">
+                <h1 className="font-serif text-xl min-[480px]:text-2xl min-[768px]:text-3xl md:text-4xl text-text-primary mb-1 min-[480px]:mb-2">{pageTitle}</h1>
+                <p className="text-text-secondary text-xs min-[480px]:text-sm min-[768px]:text-base">{pageDescription}</p>
             </div>
 
             {/* Mobile filter drawer */}
@@ -297,7 +298,7 @@ export default function ProductsView() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/40 z-50 md:hidden"
+                            className="fixed inset-0 bg-black/40 z-50 min-[768px]:hidden"
                             onClick={() => setMobileFilterOpen(false)}
                         />
                         <motion.div
@@ -305,13 +306,13 @@ export default function ProductsView() {
                             animate={{ x: 0 }}
                             exit={{ x: "-100%" }}
                             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                            className="fixed top-0 left-0 h-full w-[300px] bg-white z-50 md:hidden overflow-y-auto shadow-2xl"
+                            className="fixed top-0 left-0 h-full w-[280px] min-[480px]:w-[300px] bg-white z-50 min-[768px]:hidden overflow-y-auto shadow-2xl"
                         >
-                            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
-                                <span className="text-base font-bold text-text-primary">Filter By</span>
+                            <div className="flex items-center justify-between px-4 min-[480px]:px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+                                <span className="text-sm min-[480px]:text-base font-bold text-text-primary">Filter By</span>
                                 <div className="flex items-center gap-3">
                                     {hasActiveFilters && (
-                                        <button onClick={resetAll} className="text-sm font-semibold text-orange-600 hover:text-orange-700 transition-colors">
+                                        <button onClick={resetAll} className="text-xs min-[480px]:text-sm font-semibold text-orange-600 hover:text-orange-700 transition-colors">
                                             Reset
                                         </button>
                                     )}
@@ -320,38 +321,17 @@ export default function ProductsView() {
                                     </button>
                                 </div>
                             </div>
-                            <div className="px-4 pb-8">
-                                <FilterContent
-                                    openFilter={openFilter}
-                                    toggleFilter={toggleFilter}
-                                    priceMin={priceMin}
-                                    priceMax={priceMax}
-                                    setPriceMin={setPriceMin}
-                                    setPriceMax={setPriceMax}
-                                    allBrands={allBrands}
-                                    selectedBrands={selectedBrands}
-                                    setSelectedBrands={setSelectedBrands}
-                                    connectivityOptions={connectivityOptions}
-                                    selectedConnectivity={selectedConnectivity}
-                                    setSelectedConnectivity={setSelectedConnectivity}
-                                    selectedDiscount={selectedDiscount}
-                                    setSelectedDiscount={setSelectedDiscount}
-                                    conditionOptions={conditionOptions}
-                                    selectedCondition={selectedCondition}
-                                    setSelectedCondition={setSelectedCondition}
-                                    availabilityOptions={availabilityOptions}
-                                    selectedAvailability={selectedAvailability}
-                                    setSelectedAvailability={setSelectedAvailability}
-                                    toggleItem={toggleItem}
-                                    maxPriceLimit={maxPriceLimit}
-                                />
+                            <div className="px-3 min-[480px]:px-4 pb-8">
+                                <FilterContent {...filterContentProps} />
                             </div>
-                            <div className="sticky bottom-0 bg-white border-t border-gray-100 p-4">
+                            <div className="sticky bottom-0 bg-white border-t border-gray-100 p-3 min-[480px]:p-4">
                                 <button
                                     onClick={() => setMobileFilterOpen(false)}
-                                    className="w-full bg-purple-dark text-white text-sm font-semibold py-3 rounded-lg hover:bg-purple-mid transition-colors"
+                                    className="w-full bg-black text-sm font-semibold py-3 rounded-lg transition-colors"
                                 >
-                                    Show {sortedProducts.length} Products
+                                    <span className="bg-gradient-to-r from-[#C4A265] via-[#D4B978] to-[#C4A265] bg-clip-text text-transparent">
+                                        Show {sortedProducts.length} Products
+                                    </span>
                                 </button>
                             </div>
                         </motion.div>
@@ -359,9 +339,9 @@ export default function ProductsView() {
                 )}
             </AnimatePresence>
 
-            <div className="flex gap-6">
+            <div className="flex gap-3 min-[480px]:gap-4 min-[768px]:gap-6">
                 {/* Sidebar filters — desktop */}
-                <aside className="hidden md:block w-64 flex-shrink-0">
+                <aside className="hidden min-[768px]:block w-48 min-[1024px]:w-56 min-[1280px]:w-64 flex-shrink-0">
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 sticky top-24 overflow-hidden">
                         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                             <span className="text-base font-bold text-text-primary">Filter By</span>
@@ -372,59 +352,36 @@ export default function ProductsView() {
                             )}
                         </div>
                         <div className="px-4">
-                            <FilterContent
-                                openFilter={openFilter}
-                                toggleFilter={toggleFilter}
-                                priceMin={priceMin}
-                                priceMax={priceMax}
-                                setPriceMin={setPriceMin}
-                                setPriceMax={setPriceMax}
-                                allBrands={allBrands}
-                                selectedBrands={selectedBrands}
-                                setSelectedBrands={setSelectedBrands}
-                                connectivityOptions={connectivityOptions}
-                                selectedConnectivity={selectedConnectivity}
-                                setSelectedConnectivity={setSelectedConnectivity}
-                                selectedDiscount={selectedDiscount}
-                                setSelectedDiscount={setSelectedDiscount}
-                                conditionOptions={conditionOptions}
-                                selectedCondition={selectedCondition}
-                                setSelectedCondition={setSelectedCondition}
-                                availabilityOptions={availabilityOptions}
-                                selectedAvailability={selectedAvailability}
-                                setSelectedAvailability={setSelectedAvailability}
-                                toggleItem={toggleItem}
-                                maxPriceLimit={maxPriceLimit}
-                            />
+                            <FilterContent {...filterContentProps} />
                         </div>
                     </div>
                 </aside>
 
                 {/* Right content */}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                     {/* Toolbar */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-                        <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 min-[480px]:gap-3 mb-4 min-[768px]:mb-6">
+                        <div className="flex items-center gap-2 min-[480px]:gap-3">
                             <button
                                 onClick={() => setMobileFilterOpen(true)}
-                                className="md:hidden flex items-center gap-2 bg-white border border-gray-200 text-sm font-medium text-text-primary px-3 py-2 rounded-lg hover:border-purple-mid transition-colors"
+                                className="min-[768px]:hidden flex items-center gap-1.5 min-[480px]:gap-2 bg-white border border-gray-200 text-[10px] min-[480px]:text-sm font-medium text-text-primary px-2 min-[480px]:px-3 py-1.5 min-[480px]:py-2 rounded-lg hover:border-purple-mid transition-colors"
                             >
-                                <SlidersHorizontal size={16} />
+                                <SlidersHorizontal size={14} className="min-[480px]:w-4 min-[480px]:h-4" />
                                 Filters
-                                {hasActiveFilters && <span className="w-2 h-2 bg-purple-mid rounded-full" />}
+                                {hasActiveFilters && <span className="w-1.5 h-1.5 min-[480px]:w-2 min-[480px]:h-2 bg-purple-mid rounded-full" />}
                             </button>
-                            <span className="text-sm text-text-muted">
+                            <span className="text-[10px] min-[480px]:text-xs min-[768px]:text-sm text-text-muted">
                                 Showing <span className="font-semibold text-text-primary">{loading ? "..." : sortedProducts.length}</span> products
                             </span>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-text-muted hidden sm:inline">Sort by:</span>
+                        <div className="flex items-center gap-2 min-[480px]:gap-4">
+                            <div className="flex items-center gap-1 min-[480px]:gap-2">
+                                <span className="text-xs min-[480px]:text-sm text-text-muted hidden min-[640px]:inline">Sort by:</span>
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    className="bg-white border border-gray-200 text-sm text-text-primary font-medium px-3 py-2 rounded-lg outline-none cursor-pointer hover:border-purple-mid focus:border-purple-mid transition-colors"
+                                    className="bg-white border border-gray-200 text-[10px] min-[480px]:text-sm text-text-primary font-medium px-2 min-[480px]:px-3 py-1.5 min-[480px]:py-2 rounded-lg outline-none cursor-pointer hover:border-purple-mid focus:border-purple-mid transition-colors"
                                 >
                                     {sortOptions.map((opt) => (
                                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -432,119 +389,51 @@ export default function ProductsView() {
                                 </select>
                             </div>
 
-                            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                            <div className="flex items-center bg-gray-100 rounded-lg p-0.5 min-[480px]:p-1">
                                 <button
                                     onClick={() => setGridView("grid")}
-                                    className={`p-1.5 rounded-md transition-colors ${gridView === "grid" ? "bg-white shadow-sm text-purple-dark" : "text-text-muted"}`}
+                                    className={`p-1 min-[480px]:p-1.5 rounded-md transition-colors ${gridView === "grid" ? "bg-white shadow-sm text-purple-dark" : "text-text-muted"}`}
                                 >
-                                    <Grid3X3 size={16} />
+                                    <Grid3X3 size={14} className="min-[480px]:w-4 min-[480px]:h-4" />
                                 </button>
                                 <button
                                     onClick={() => setGridView("list")}
-                                    className={`p-1.5 rounded-md transition-colors ${gridView === "list" ? "bg-white shadow-sm text-purple-dark" : "text-text-muted"}`}
+                                    className={`p-1 min-[480px]:p-1.5 rounded-md transition-colors ${gridView === "list" ? "bg-white shadow-sm text-purple-dark" : "text-text-muted"}`}
                                 >
-                                    <LayoutList size={16} />
+                                    <LayoutList size={14} className="min-[480px]:w-4 min-[480px]:h-4" />
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* Products Loading/Empty/List */}
+                    {/* Products */}
                     {loading ? (
                         <div className="flex justify-center items-center h-64">
                             <Loader2 className="animate-spin text-purple-mid" size={32} />
                         </div>
                     ) : sortedProducts.length === 0 ? (
                         <div className="text-center py-20 flex flex-col justify-center items-center">
-                            <p className="text-text-muted text-lg mb-4">No products found for this query.</p>
+                            <p className="text-text-muted text-sm min-[480px]:text-base min-[768px]:text-lg mb-4">No products found for this query.</p>
                             {hasActiveFilters && (
-                                <button onClick={resetAll} className="text-sm text-white bg-purple-mid hover:bg-purple-dark transition-colors px-6 py-2 rounded-lg font-semibold">
+                                <button onClick={resetAll} className="text-xs min-[480px]:text-sm text-white bg-purple-mid hover:bg-purple-dark transition-colors px-4 min-[480px]:px-6 py-2 rounded-lg font-semibold">
                                     Clear all filters
                                 </button>
                             )}
                             {(!hasActiveFilters && (categoryParam || subcategoryParam)) && (
-                                <Link href="/products" className="text-sm text-white bg-purple-mid hover:bg-purple-dark transition-colors px-6 py-2 rounded-lg font-semibold mt-4">
+                                <Link href="/products" className="text-xs min-[480px]:text-sm text-white bg-purple-mid hover:bg-purple-dark transition-colors px-4 min-[480px]:px-6 py-2 rounded-lg font-semibold mt-4">
                                     View All Products
                                 </Link>
                             )}
                         </div>
                     ) : gridView === "grid" ? (
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-7" style={{ overflow: "visible" }}>
-                            {sortedProducts.map((product, i) => {
-                                const productId = String(product._id || product.id);
-                                return (
-                                    <motion.div
-                                        key={productId}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.3, delay: i * 0.03 }}
-                                        whileHover={{ y: -8, rotateX: 2, rotateY: -1 }}
-                                        style={{ transformPerspective: 800 }}
-                                        className="bg-card-white rounded-xl overflow-hidden group shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(45,24,84,0.15)] transition-all duration-300 flex flex-col relative"
-                                    >
-                                        <Link href={`/product/${productId}`} className="flex-1 flex flex-col">
-                                            <div className="relative h-36 sm:h-44 lg:h-56 bg-offwhite overflow-hidden">
-                                                {product.badge && (
-                                                    <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-purple-soft text-purple-mid text-[9px] sm:text-[10px] font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full z-10">
-                                                        {product.badge}
-                                                    </span>
-                                                )}
-                                                {product._savedAmount > 0 && (
-                                                    <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-green-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full z-10">
-                                                        Save Tk {product._savedAmount.toFixed(0)}
-                                                    </span>
-                                                )}
-                                                <Image
-                                                    src={product._image}
-                                                    alt={product.name}
-                                                    fill
-                                                    className="object-contain group-hover:scale-105 transition-transform duration-500"
-                                                    sizes="(max-width: 768px) 50vw, 25vw"
-                                                />
-                                            </div>
-                                            <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
-                                                <p className="text-[10px] sm:text-[11px] text-text-muted font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product._brand}</p>
-                                                <h3 className="text-xs sm:text-sm font-normal text-text-primary/85 mb-2 sm:mb-3 leading-snug line-clamp-2">
-                                                    {product.name}
-                                                </h3>
-                                                <div className="mt-auto">
-                                                    {product._isInStock ? (
-                                                        <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
-                                                            <span className="text-sm sm:text-lg font-bold text-text-primary">Tk {product._normalPrice.toFixed(2)}</span>
-                                                            {product._savedAmount > 0 && (
-                                                                <span className="text-[10px] sm:text-xs text-text-muted line-through">Tk {product._regularPrice.toFixed(2)}</span>
-                                                            )}
-                                                        </div>
-                                                    ) : (
-                                                        <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">
-                                                            Out of Stock
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </Link>
-                                        <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4 mt-auto">
-                                            {product._isInStock ? (
-                                                <div className="flex items-center gap-1.5 sm:gap-2">
-                                                    <Link href={`/product/${productId}`} className="flex-1 border border-purple-mid text-purple-mid hover:bg-purple-soft text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors text-center">
-                                                        VIEW
-                                                    </Link>
-                                                    <button onClick={() => addToCart(productId)} className="flex-1 bg-purple-dark hover:scale-[1.03] hover:bg-[#2a2a2a] text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-all duration-200">
-                                                        <span className="text-white">ADD TO CART</span>
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <button className="w-full bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>
-                                                    Out of Stock
-                                                </button>
-                                            )}
-                                        </div>
-                                    </motion.div>
-                                );
-                            })}
+                        <div className="grid grid-cols-2 min-[768px]:grid-cols-2 min-[1024px]:grid-cols-3 min-[1280px]:grid-cols-4 gap-2 min-[480px]:gap-3 min-[640px]:gap-4 min-[768px]:gap-5" style={{ overflow: "visible" }}>
+                            {sortedProducts.map((product, i) => (
+                                <ProductCard key={String(product._id || product.id)} product={product} index={i} />
+                            ))}
                         </div>
                     ) : (
-                        <div className="space-y-4">
+                        /* List view */
+                        <div className="space-y-2 min-[480px]:space-y-3 min-[768px]:space-y-4">
                             {sortedProducts.map((product, i) => {
                                 const productId = String(product._id || product.id);
                                 return (
@@ -555,10 +444,10 @@ export default function ProductsView() {
                                         transition={{ duration: 0.3, delay: i * 0.03 }}
                                     >
                                         <Link href={`/product/${productId}`}>
-                                            <div className="bg-white rounded-xl overflow-hidden flex group hover:shadow-md transition-all duration-300">
-                                                <div className="relative w-28 sm:w-48 h-32 sm:h-44 bg-offwhite flex-shrink-0 overflow-hidden">
+                                            <div className="bg-white rounded-lg min-[480px]:rounded-xl overflow-hidden flex group hover:shadow-md transition-all duration-300">
+                                                <div className="relative w-24 min-[480px]:w-32 min-[768px]:w-48 h-28 min-[480px]:h-32 min-[768px]:h-44 bg-card-white flex-shrink-0 overflow-hidden">
                                                     {product.badge && (
-                                                        <span className="absolute top-3 left-3 bg-purple-soft text-purple-mid text-[10px] font-semibold px-3 py-1 rounded-full z-10">
+                                                        <span className="absolute top-1.5 left-1.5 min-[480px]:top-2 min-[480px]:left-2 min-[768px]:top-3 min-[768px]:left-3 bg-purple-soft text-purple-mid text-[8px] min-[480px]:text-[9px] min-[768px]:text-[10px] font-semibold px-1.5 min-[480px]:px-2 min-[768px]:px-3 py-0.5 min-[768px]:py-1 rounded-full z-10">
                                                             {product.badge}
                                                         </span>
                                                     )}
@@ -570,30 +459,25 @@ export default function ProductsView() {
                                                         sizes="200px"
                                                     />
                                                 </div>
-                                                <div className="flex-1 p-3 sm:p-5 flex flex-col justify-center">
-                                                    <p className="text-[10px] sm:text-[11px] text-text-muted font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product._brand}</p>
-                                                    <h3 className="text-sm sm:text-base font-normal text-text-primary/85 mb-1 sm:mb-2 group-hover:text-purple-dark transition-colors">
+                                                <div className="flex-1 p-2 min-[480px]:p-3 min-[768px]:p-5 flex flex-col justify-center min-w-0">
+                                                    <p className="text-[8px] min-[480px]:text-[9px] min-[768px]:text-[11px] text-text-muted font-semibold uppercase tracking-wider mb-0.5">{product._brand}</p>
+                                                    <h3 className="text-[10px] min-[480px]:text-xs min-[768px]:text-base font-normal text-text-primary/85 mb-1 min-[768px]:mb-2 group-hover:text-purple-dark transition-colors line-clamp-2">
                                                         {product.name}
                                                     </h3>
-                                                    <p className="text-xs sm:text-sm text-text-secondary mb-2 sm:mb-3 line-clamp-2">{product.description}</p>
-                                                    <div className="flex items-center gap-0.5 mb-1.5 sm:mb-2">
-                                                        {[1, 2, 3, 4, 5].map((s) => (
-                                                            <Star key={s} size={13} className={s <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-200"} />
-                                                        ))}
-                                                    </div>
+                                                    <p className="text-[8px] min-[480px]:text-[10px] min-[768px]:text-sm text-text-secondary mb-1 min-[480px]:mb-2 min-[768px]:mb-3 line-clamp-1 min-[768px]:line-clamp-2 hidden min-[480px]:block">{product.description}</p>
                                                     {product._isInStock ? (
-                                                        <div className="flex items-baseline gap-2 sm:gap-3">
-                                                            <span className="text-base sm:text-xl font-bold text-text-primary">Tk {product._normalPrice.toFixed(2)}</span>
+                                                        <div className="flex flex-wrap items-baseline gap-x-1 min-[480px]:gap-x-1.5 min-[768px]:gap-x-3">
+                                                            <span className="text-[11px] min-[480px]:text-sm min-[768px]:text-xl font-semibold text-text-primary whitespace-nowrap">Tk {formatPrice(product._normalPrice)}</span>
                                                             {product._savedAmount > 0 && (
                                                                 <>
-                                                                    <span className="text-xs sm:text-sm text-text-muted line-through">Tk {product._regularPrice.toFixed(2)}</span>
-                                                                    <span className="hidden sm:inline text-xs text-green-600 font-semibold">Save Tk {product._savedAmount.toFixed(0)}</span>
-                                                                    <span className="bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">-{product._discountPct}%</span>
+                                                                    <span className="text-[8px] min-[480px]:text-[10px] min-[768px]:text-sm text-text-muted line-through whitespace-nowrap">Tk {formatPrice(product._regularPrice)}</span>
+                                                                    <span className="hidden min-[768px]:inline text-xs text-green-600 font-semibold whitespace-nowrap">Save Tk {formatPrice(product._savedAmount)}</span>
+                                                                    <span className="bg-green-600 text-white text-[7px] min-[480px]:text-[8px] min-[768px]:text-[10px] font-bold px-1 min-[480px]:px-1.5 min-[768px]:px-2 py-0.5 rounded-full whitespace-nowrap">-{product._discountPct}%</span>
                                                                 </>
                                                             )}
                                                         </div>
                                                     ) : (
-                                                        <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-red-100 text-red-600">
+                                                        <span className="inline-block text-[8px] min-[480px]:text-[9px] min-[768px]:text-xs font-bold px-1.5 min-[768px]:px-3 py-0.5 min-[768px]:py-1.5 rounded-full bg-red-100 text-red-600 whitespace-nowrap">
                                                             Out of Stock
                                                         </span>
                                                     )}
