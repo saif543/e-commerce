@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductsView from "@/components/ProductsView";
@@ -12,7 +13,9 @@ export default function ProductsPage() {
         <div className="min-h-screen bg-offwhite flex flex-col">
             <Navbar />
             <main className="flex-grow">
-                <ProductsView />
+                <Suspense>
+                    <ProductsView />
+                </Suspense>
             </main>
             <Footer />
         </div>
