@@ -109,7 +109,7 @@ export default function BrandPage({ slug }) {
                     ))}
                   </div>
                   <p className="text-[10px] sm:text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product.brand}</p>
-                  <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 group-hover:text-purple-mid transition-colors">
+                  <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 transition-colors">
                     {product.name}
                   </h3>
                   <div className="mt-auto">
@@ -132,8 +132,8 @@ export default function BrandPage({ slug }) {
                     <Link href={`/product/${product.id}`} className="flex-1 border border-purple-mid text-purple-mid hover:bg-purple-soft text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors text-center">
                       VIEW
                     </Link>
-                    <button onClick={() => addToCart(product.id)} className="flex-1 bg-purple-dark hover:bg-purple-mid text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors">
-                      ADD TO CART
+                    <button onClick={() => addToCart(product.id)} className="flex-1 bg-purple-dark hover:scale-[1.03] hover:bg-[#2a2a2a] text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-all duration-200">
+                      <span className="text-gold-gradient">ADD TO CART</span>
                     </button>
                   </div>
                 ) : (
