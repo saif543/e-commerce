@@ -44,8 +44,6 @@ export default function Navbar() {
       .catch((err) => console.error("Failed to load categories:", err));
   }, []);
 
-  const isCategoryActive = pathname.startsWith("/category");
-
   useEffect(() => {
     if (searchOpen && searchRef.current) {
       searchRef.current.focus();
@@ -133,13 +131,10 @@ export default function Navbar() {
               onMouseEnter={() => setShowCategories(true)}
               onMouseLeave={() => { setShowCategories(false); setActiveCategory(null); }}
             >
-              <button className={`flex items-center gap-1.5 text-sm font-semibold transition-colors relative pb-0.5 ${isCategoryActive ? "text-purple-mid" : "text-text-primary hover:text-purple-mid"
+              <button className={`flex items-center gap-1.5 text-sm font-semibold transition-colors relative pb-0.5 ${pathname.startsWith("/products") ? "text-purple-mid" : "text-text-primary hover:text-purple-mid"
                 }`}>
                 All Categories
                 <ChevronDown size={14} className={`transition-transform duration-200 ${showCategories ? "rotate-180" : ""}`} />
-                {isCategoryActive && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-purple-mid rounded-full" />
-                )}
               </button>
 
               <AnimatePresence>
@@ -157,12 +152,12 @@ export default function Navbar() {
                         {categories.map((cat, i) => (
                           <Link
                             key={String(cat._id || cat.name)}
-                            href={`/category/${toSlug(cat.name)}`}
+                            href={`/products?category=${encodeURIComponent(cat.name)}`}
                             onMouseEnter={() => setActiveCategory(i)}
                             onClick={() => { setShowCategories(false); setActiveCategory(null); }}
                             className={`flex items-center justify-between px-5 py-3 cursor-pointer transition-colors ${activeCategory === i
-                                ? "bg-purple-soft text-purple-dark"
-                                : "text-text-primary hover:bg-gray-50"
+                              ? "bg-purple-soft text-purple-dark"
+                              : "text-text-primary hover:bg-gray-50"
                               }`}
                           >
                             <span className="text-sm">{cat.name}</span>
@@ -183,7 +178,7 @@ export default function Navbar() {
                             className="w-56 py-2"
                           >
                             <Link
-                              href={`/category/${toSlug(categories[activeCategory].name)}`}
+                              href={`/products?category=${encodeURIComponent(categories[activeCategory].name)}`}
                               onClick={() => { setShowCategories(false); setActiveCategory(null); }}
                               className="block px-5 py-2 text-[11px] font-semibold text-purple-mid uppercase tracking-wider hover:text-purple-dark transition-colors"
                             >
@@ -192,7 +187,7 @@ export default function Navbar() {
                             {(categories[activeCategory].subcategories || []).map((sub) => (
                               <Link
                                 key={String(sub._id || sub.name)}
-                                href={`/category/${toSlug(sub.name)}`}
+                                href={`/products?subcategory=${encodeURIComponent(sub.name)}`}
                                 onClick={() => { setShowCategories(false); setActiveCategory(null); }}
                                 className="block px-5 py-2.5 text-sm text-text-secondary hover:text-purple-dark hover:bg-purple-soft/40 transition-colors"
                               >
@@ -543,7 +538,7 @@ export default function Navbar() {
                           className="overflow-hidden bg-gray-50/50"
                         >
                           <Link
-                            href={`/category/${toSlug(cat.name)}`}
+                            href={`/products?category=${encodeURIComponent(cat.name)}`}
                             onClick={() => setMobileMenuOpen(false)}
                             className="block px-6 py-2.5 text-xs font-semibold text-purple-mid uppercase tracking-wider hover:text-purple-dark transition-colors"
                           >
@@ -552,7 +547,7 @@ export default function Navbar() {
                           {(cat.subcategories || []).map((sub) => (
                             <Link
                               key={String(sub._id || sub.name)}
-                              href={`/category/${toSlug(sub.name)}`}
+                              href={`/products?subcategory=${encodeURIComponent(sub.name)}`}
                               onClick={() => setMobileMenuOpen(false)}
                               className="block px-6 py-2.5 text-sm text-text-secondary hover:text-purple-dark hover:bg-purple-soft/30 transition-colors"
                             >
