@@ -1,7 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import TrustBadges from "@/components/TrustBadges";
-import Categories from "@/components/Categories";
+
 import Products from "@/components/Products";
 import FeaturedCategories from "@/components/FeaturedCategories";
 import ExclusiveOffer from "@/components/ExclusiveOffer";
@@ -12,7 +12,7 @@ export default function Home() {
     <div className="min-h-screen bg-offwhite">
       <Navbar />
       <Hero />
-      <Categories />
+
       <Products />
       <FeaturedCategories />
       <ExclusiveOffer />

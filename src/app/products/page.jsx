@@ -1,0 +1,20 @@
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import ProductsView from "@/components/ProductsView";
+
+export const metadata = {
+    title: "Products - Nishat",
+    description: "Browse our collection of premium products",
+};
+
+export default function ProductsPage() {
+    return (
+        <div className="min-h-screen bg-offwhite flex flex-col">
+            <Navbar />
+            <main className="flex-grow">
+                <ProductsView />
+            </main>
+            <Footer />
+        </div>
+    );
+}
