@@ -5,18 +5,46 @@ import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Star, ChevronLeft, ChevronRight, Minus, Plus, ArrowLeft } from "lucide-react";
-import { products } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 
-export default function ProductDetail({ product }) {
+export default function ProductDetail({ product, relatedProducts = [] }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [qty, setQty] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
   const { addToCart } = useCart();
 
-  const relatedProducts = products.filter((p) => p.id !== product.id).slice(0, 4);
+  // Normalize DB fields to match the existing design expectations
+  const productId = product._id || product.id;
+  const brandName = product.customFields?.brand || product.category || product.brand || "";
 
-  const allImages = [product.image, ...product.gallery];
+  // Price logic:
+  // DB schema: price = regular/MRP price, discount = sale price (customer pays), originalPrice = cost per item (not shown)
+  // If discount field exists and is a number > 0 and < price, it's the sale price
+  const regularPrice = product.price || 0;
+  const salePrice = (product.discount && product.discount > 0 && product.discount < regularPrice)
+    ? product.discount
+    : regularPrice;
+  const savedAmount = regularPrice - salePrice;
+  const discountPct = regularPrice > 0 ? Math.round((savedAmount / regularPrice) * 100) : 0;
+
+  // Build image list: DB uses images[{url}], static uses image + gallery
+  const allImages =
+    product.images && product.images.length > 0
+      ? product.images.map((img) => img.url).filter(Boolean)
+      : [product.image, ...(product.gallery || [])].filter(Boolean);
+  // Description: DB uses a string, static uses array (longDescription)
+  const descriptionParagraphs = Array.isArray(product.longDescription)
+    ? product.longDescription
+    : (product.description || "").split("\n").filter((l) => l.trim());
+  const shortDescription = Array.isArray(product.longDescription)
+    ? product.description
+    : (product.description || "").split("\n")[0] || "";
+  const features = product.features || [];
+  const specifications = product.specifications || {};
+  // Custom fields: object like { "Color": "Red", "Material": "Leather" }
+  const customFields = product.customFields
+    ? Object.entries(product.customFields).filter(([k]) => k !== 'brand')
+    : [];
 
   return (
     <section className="max-w-[1440px] mx-auto px-6 py-8">
@@ -54,7 +82,7 @@ export default function ProductDetail({ product }) {
                 className="absolute inset-0 p-6"
               >
                 <Image
-                  src={allImages[selectedImage]}
+                  src={allImages[selectedImage] || "/placeholder.png"}
                   alt={product.name}
                   fill
                   className="object-contain pointer-events-none"
@@ -95,11 +123,10 @@ export default function ProductDetail({ product }) {
               <button
                 key={i}
                 onClick={() => setSelectedImage(i)}
-                className={`relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${
-                  i === selectedImage
-                    ? "border-purple-mid shadow-md"
-                    : "border-transparent opacity-50 hover:opacity-100"
-                }`}
+                className={`relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${i === selectedImage
+                  ? "border-purple-mid shadow-md"
+                  : "border-transparent opacity-50 hover:opacity-100"
+                  }`}
               >
                 <Image src={img} alt={`View ${i + 1}`} fill className="object-cover" sizes="80px" />
               </button>
@@ -117,7 +144,7 @@ export default function ProductDetail({ product }) {
           )}
 
           {/* Brand */}
-          <p className="text-gold-gradient text-xs font-semibold uppercase tracking-wider mb-2">{product.brand}</p>
+          <p className="text-gold-gradient text-xs font-semibold uppercase tracking-wider mb-2">{brandName || product.brand}</p>
 
           {/* Name */}
           <h1 className="font-serif text-3xl md:text-4xl text-text-primary mb-5 leading-tight">{product.name}</h1>
@@ -134,36 +161,42 @@ export default function ProductDetail({ product }) {
 
           {/* Price */}
           <div className="flex items-baseline gap-3 mb-2">
-            <span className="text-4xl font-bold text-gold-gradient">Tk {product.price.toFixed(2)}</span>
-            <span className="text-lg text-text-muted line-through">Tk {product.originalPrice.toFixed(2)}</span>
+            <span className="text-4xl font-bold text-gold-gradient">Tk {salePrice.toFixed(2)}</span>
+            {savedAmount > 0 && (
+              <span className="text-lg text-text-muted line-through">Tk {regularPrice.toFixed(2)}</span>
+            )}
           </div>
-          <div className="flex items-center gap-3 mb-8">
-            <span className="text-sm text-green-600 font-semibold">
-              Save Tk {(product.originalPrice - product.price).toFixed(0)}
-            </span>
-            <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
-              -{product.drop}%
-            </span>
-          </div>
+          {savedAmount > 0 && (
+            <div className="flex items-center gap-3 mb-8">
+              <span className="text-sm text-green-600 font-semibold">
+                Save Tk {savedAmount.toFixed(0)}
+              </span>
+              <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
+                -{discountPct}%
+              </span>
+            </div>
+          )}
 
           {/* Divider */}
           <div className="border-t border-gray-100 mb-8" />
 
           {/* Description */}
-          <p className="text-text-secondary text-base leading-relaxed mb-8">{product.description}</p>
+          <p className="text-text-secondary text-base leading-relaxed mb-8">{shortDescription || product.description}</p>
 
           {/* Features */}
-          <div className="mb-8">
-            <h3 className="text-base font-semibold text-text-primary mb-4">Key Features</h3>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {product.features.map((feat) => (
-                <li key={feat} className="flex items-start gap-2.5 text-sm text-text-secondary">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-mid mt-2 flex-shrink-0" />
-                  {feat}
-                </li>
-              ))}
-            </ul>
-          </div>
+          {features.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-base font-semibold text-text-primary mb-4">Key Features</h3>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {features.map((feat) => (
+                  <li key={feat} className="flex items-start gap-2.5 text-sm text-text-secondary">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-mid mt-2 flex-shrink-0" />
+                    {feat}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Divider */}
           <div className="border-t border-gray-100 mb-8" />
@@ -193,11 +226,11 @@ export default function ProductDetail({ product }) {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => addToCart(product.id, qty)}
+              onClick={() => addToCart(productId, qty)}
               className="flex-1 bg-purple-dark hover:bg-purple-mid text-white py-4 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
             >
               <ShoppingCart size={18} />
-              Add to Cart — Tk {(product.price * qty).toFixed(2)}
+              Add to Cart — Tk {(salePrice * qty).toFixed(2)}
             </motion.button>
           </div>
         </div>
@@ -211,11 +244,10 @@ export default function ProductDetail({ product }) {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`pb-3 text-sm font-semibold capitalize transition-colors relative ${
-                  activeTab === tab
-                    ? "text-purple-dark"
-                    : "text-text-muted hover:text-text-secondary"
-                }`}
+                className={`pb-3 text-sm font-semibold capitalize transition-colors relative ${activeTab === tab
+                  ? "text-purple-dark"
+                  : "text-text-muted hover:text-text-secondary"
+                  }`}
               >
                 {tab}
                 {activeTab === tab && (
@@ -240,36 +272,44 @@ export default function ProductDetail({ product }) {
           >
             {activeTab === "description" ? (
               <div className="p-8">
-                <h3 className="text-lg font-bold text-text-primary mb-5">{product.brand} {product.name}</h3>
+                <h3 className="text-lg font-bold text-text-primary mb-5">{brandName || product.brand} {product.name}</h3>
                 <div className="space-y-4">
-                  {product.longDescription.map((para, i) => (
+                  {descriptionParagraphs.map((para, i) => (
                     <p key={i} className="text-text-secondary text-[15px] leading-relaxed">
                       {para}
                     </p>
                   ))}
                 </div>
-                <div className="mt-8 pt-6 border-t border-gray-100">
-                  <h4 className="text-base font-semibold text-text-primary mb-4">Key Features</h4>
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {product.features.map((feat) => (
-                      <li key={feat} className="flex items-start gap-2.5 text-sm text-text-secondary">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-mid mt-2 flex-shrink-0" />
-                        {feat}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {/* Custom Fields */}
+                {customFields.length > 0 && (
+                  <div className="mt-8 pt-6 border-t border-gray-100">
+                    <h4 className="text-base font-semibold text-text-primary mb-4">Product Details</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {customFields.map(([key, value]) => (
+                        <div key={key} className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
+                          <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">{key}</p>
+                          <p className="text-sm font-semibold text-text-primary">{String(value)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="overflow-hidden">
                 <table className="w-full">
                   <tbody>
-                    {Object.entries(product.specifications).map(([key, value], i) => (
+                    {Object.entries(specifications).map(([key, value], i) => (
                       <tr key={key} className={`border-b border-gray-100 last:border-b-0 ${i % 2 === 0 ? "bg-gray-50/70" : "bg-white"}`}>
                         <td className="px-6 py-4 text-sm font-semibold text-text-primary w-2/5 border-r border-gray-100">{key}</td>
-                        <td className="px-6 py-4 text-sm text-text-secondary">{value}</td>
+                        <td className="px-6 py-4 text-sm text-text-secondary">{typeof value === "object" ? JSON.stringify(value) : value}</td>
                       </tr>
                     ))}
+                    {Object.keys(specifications).length === 0 && (
+                      <tr>
+                        <td colSpan={2} className="px-6 py-8 text-sm text-text-muted text-center">No specifications available</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -279,52 +319,63 @@ export default function ProductDetail({ product }) {
       </div>
 
       {/* Related Products */}
-      <div className="mt-10 mb-8">
-        <h2 className="font-serif text-2xl md:text-3xl text-text-primary mb-8">Related Products</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-          {relatedProducts.map((rp, i) => (
-            <motion.div
-              key={rp.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              whileHover={{ y: -5 }}
-              className="bg-white rounded-xl overflow-hidden group hover:shadow-md transition-shadow duration-300"
-            >
-              <Link href={`/product/${rp.id}`}>
-                <div className="relative h-48 bg-offwhite overflow-hidden">
-                  {rp.badge && (
-                    <span className="absolute top-3 left-3 bg-purple-soft text-purple-mid text-[10px] font-semibold px-3 py-1 rounded-full z-10">
-                      {rp.badge}
-                    </span>
-                  )}
-                  <span className="absolute top-3 right-3 bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full z-10">
-                    -{rp.drop}%
-                  </span>
-                  <Image
-                    src={rp.image}
-                    alt={rp.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                  />
-                </div>
-                <div className="p-4">
-                  <p className="text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-1">{rp.brand}</p>
-                  <h3 className="text-sm font-semibold text-text-primary mb-2 leading-snug line-clamp-2 group-hover:text-purple-mid transition-colors">
-                    {rp.name}
-                  </h3>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-bold text-gold-gradient">Tk {rp.price.toFixed(2)}</span>
-                    <span className="text-xs text-text-muted line-through">Tk {rp.originalPrice.toFixed(2)}</span>
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
+      {relatedProducts.length > 0 && (
+        <div className="mt-10 mb-8">
+          <h2 className="font-serif text-2xl md:text-3xl text-text-primary mb-8">Related Products</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+            {relatedProducts.map((rp, i) => {
+              const rpId = String(rp._id || rp.id);
+              const rpBrand = rp.customFields?.brand || rp.category || rp.brand || "";
+              const rpImage =
+                rp.images && rp.images.length > 0
+                  ? rp.images[0].url
+                  : rp.image || "/placeholder.png";
+              const rpDiscount = rp.discount ?? rp.drop ?? 0;
+              return (
+                <motion.div
+                  key={rpId}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: i * 0.05 }}
+                  whileHover={{ y: -5 }}
+                  className="bg-white rounded-xl overflow-hidden group hover:shadow-md transition-shadow duration-300"
+                >
+                  <Link href={`/product/${rpId}`}>
+                    <div className="relative h-48 bg-offwhite overflow-hidden">
+                      {rp.badge && (
+                        <span className="absolute top-3 left-3 bg-purple-soft text-purple-mid text-[10px] font-semibold px-3 py-1 rounded-full z-10">
+                          {rp.badge}
+                        </span>
+                      )}
+                      <span className="absolute top-3 right-3 bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full z-10">
+                        -{rpDiscount}%
+                      </span>
+                      <Image
+                        src={rpImage}
+                        alt={rp.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <p className="text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-1">{rpBrand}</p>
+                      <h3 className="text-sm font-semibold text-text-primary mb-2 leading-snug line-clamp-2 group-hover:text-purple-mid transition-colors">
+                        {rp.name}
+                      </h3>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-lg font-bold text-gold-gradient">Tk {(rp.price || 0).toFixed(2)}</span>
+                        <span className="text-xs text-text-muted line-through">Tk {(rp.originalPrice || 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }
