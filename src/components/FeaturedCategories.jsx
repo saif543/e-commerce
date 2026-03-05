@@ -13,7 +13,7 @@ export default function FeaturedCategories() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="relative rounded-2xl overflow-hidden h-[420px] group cursor-pointer"
+          className="relative rounded-2xl overflow-hidden h-[200px] md:h-[420px] group cursor-pointer"
         >
           <Image
             src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=600&fit=crop"

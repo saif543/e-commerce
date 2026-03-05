@@ -51,7 +51,12 @@ export default function Products() {
                 product.images && product.images.length > 0
                   ? product.images[0].url
                   : product.image || "/placeholder.png";
-              const discountPct = product.discount ?? product.drop ?? 0;
+              // DB: price = regular/MRP, discount = sale price (what customer pays)
+              const regularPrice = product.price || 0;
+              const salePrice = (product.discount && product.discount > 0 && product.discount < regularPrice)
+                ? product.discount
+                : regularPrice;
+              const savedAmount = regularPrice - salePrice;
               const isAvailable = product.stock === "In Stock" || product.stock === "in_stock";
 
               return (
@@ -73,33 +78,37 @@ export default function Products() {
                           {product.badge}
                         </span>
                       )}
-                      <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-green-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full z-10">
-                        Save Tk {((product.originalPrice || 0) - (product.price || 0)).toFixed(0)}
-                      </span>
+                      {savedAmount > 0 && (
+                        <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-green-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full z-10">
+                          Save Tk {savedAmount.toFixed(0)}
+                        </span>
+                      )}
                       <Image
                         src={imageUrl}
                         alt={product.name}
                         fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="object-contain group-hover:scale-105 transition-transform duration-500"
                         sizes="(max-width: 768px) 50vw, 25vw"
                       />
                     </div>
 
                     {/* Info */}
                     <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
-                      <p className="text-[10px] sm:text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{brandName}</p>
-                      <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 group-hover:text-purple-mid transition-colors">
+                      <p className="text-[10px] sm:text-[11px] text-text-muted font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{brandName}</p>
+                      <h3 className="text-xs sm:text-sm font-normal text-text-primary/85 mb-2 sm:mb-3 leading-snug line-clamp-2">
                         {product.name}
                       </h3>
                       <div className="mt-auto">
                         {isAvailable ? (
                           <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
-                            <span className="text-sm sm:text-lg font-bold text-gold-gradient">
-                              Tk {(product.price || 0).toFixed(2)}
+                            <span className="text-sm sm:text-lg font-bold text-text-primary">
+                              Tk {salePrice.toFixed(2)}
                             </span>
-                            <span className="text-[10px] sm:text-xs text-text-muted line-through">
-                              Tk {(product.originalPrice || 0).toFixed(2)}
-                            </span>
+                            {savedAmount > 0 && (
+                              <span className="text-[10px] sm:text-xs text-text-muted line-through">
+                                Tk {regularPrice.toFixed(2)}
+                              </span>
+                            )}
                           </div>
                         ) : (
                           <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">

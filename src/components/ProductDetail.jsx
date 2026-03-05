@@ -144,7 +144,7 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
           )}
 
           {/* Brand */}
-          <p className="text-gold-gradient text-xs font-semibold uppercase tracking-wider mb-2">{brandName || product.brand}</p>
+          <p className="text-text-primary text-xs font-semibold uppercase tracking-wider mb-2">{brandName || product.brand}</p>
 
           {/* Name */}
           <h1 className="font-serif text-3xl md:text-4xl text-text-primary mb-5 leading-tight">{product.name}</h1>
@@ -161,7 +161,7 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
 
           {/* Price */}
           <div className="flex items-baseline gap-3 mb-2">
-            <span className="text-4xl font-bold text-gold-gradient">Tk {salePrice.toFixed(2)}</span>
+            <span className="text-4xl font-bold text-text-primary">Tk {salePrice.toFixed(2)}</span>
             {savedAmount > 0 && (
               <span className="text-lg text-text-muted line-through">Tk {regularPrice.toFixed(2)}</span>
             )}
@@ -360,12 +360,12 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
                       />
                     </div>
                     <div className="p-4">
-                      <p className="text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-1">{rpBrand}</p>
+                      <p className="text-[11px] text-text-primary font-semibold uppercase tracking-wider mb-1">{rpBrand}</p>
                       <h3 className="text-sm font-semibold text-text-primary mb-2 leading-snug line-clamp-2 group-hover:text-purple-mid transition-colors">
                         {rp.name}
                       </h3>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-lg font-bold text-gold-gradient">Tk {(rp.price || 0).toFixed(2)}</span>
+                        <span className="text-lg font-bold text-text-primary">Tk {(rp.price || 0).toFixed(2)}</span>
                         <span className="text-xs text-text-muted line-through">Tk {(rp.originalPrice || 0).toFixed(2)}</span>
                       </div>
                     </div>

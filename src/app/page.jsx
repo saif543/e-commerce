@@ -5,7 +5,6 @@ import Categories from "@/components/Categories";
 import Products from "@/components/Products";
 import FeaturedCategories from "@/components/FeaturedCategories";
 import ExclusiveOffer from "@/components/ExclusiveOffer";
-import Testimonials from "@/components/Testimonials";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -13,12 +12,11 @@ export default function Home() {
     <div className="min-h-screen bg-offwhite">
       <Navbar />
       <Hero />
-      <TrustBadges />
       <Categories />
       <Products />
       <FeaturedCategories />
       <ExclusiveOffer />
-      <Testimonials />
+      <TrustBadges />
       <Footer />
     </div>
   );
