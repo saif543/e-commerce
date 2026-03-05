@@ -1,12 +1,11 @@
-"use client";
+﻿"use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Grid3X3, LayoutList, Star, SlidersHorizontal, X, TrendingUp, Flame } from "lucide-react";
+import { ChevronDown, Grid3X3, LayoutList, Star, SlidersHorizontal, X, TrendingUp, Flame, Loader2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { products } from "@/data/products";
 
 const sortOptions = [
   { label: "Most Popular", value: "default" },
@@ -45,29 +44,55 @@ export default function TrendingPage() {
   const [openFilter, setOpenFilter] = useState("price");
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [priceMin, setPriceMin] = useState(0);
-  const [priceMax, setPriceMax] = useState(500);
+  const [priceMax, setPriceMax] = useState(9999999);
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [selectedDiscount, setSelectedDiscount] = useState(null);
   const [selectedAvailability, setSelectedAvailability] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const toggleFilter = (key) => {
     setOpenFilter((prev) => (prev === key ? null : key));
   };
 
   const { addToCart } = useCart();
-  const allBrands = [...new Set(products.map((p) => p.brand))];
+
+  // Fetch trending products from DB
+  useEffect(() => {
+    fetch("/api/product?isTrending=true&limit=100")
+      .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+      .then((data) => {
+        const prods = data.products || [];
+        setProducts(prods);
+        // Set price range based on actual products
+        if (prods.length > 0) {
+          const prices = prods.map((p) => p.price || 0);
+          setPriceMax(Math.max(...prices));
+        }
+      })
+      .catch((err) => console.error("Failed to fetch trending products:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Derive unique brands from fetched products (using category or brand field)
+  const allBrands = useMemo(() => {
+    const brands = products
+      .map((p) => p.customFields?.brand || p.brand || p.category || "")
+      .filter(Boolean);
+    return [...new Set(brands)];
+  }, [products]);
+
   const availabilityOptions = ["In Stock", "Out of Stock"];
 
   const hasActiveFilters =
     selectedBrands.length > 0 ||
     selectedDiscount !== null ||
-    selectedAvailability.length > 0 ||
-    priceMax < 500 ||
-    priceMin > 0;
+    selectedAvailability.length > 0;
 
   const resetAll = () => {
+    const prices = products.map((p) => p.price || 0);
     setPriceMin(0);
-    setPriceMax(500);
+    setPriceMax(products.length > 0 ? Math.max(...prices) : 9999999);
     setSelectedBrands([]);
     setSelectedDiscount(null);
     setSelectedAvailability([]);
@@ -78,22 +103,44 @@ export default function TrendingPage() {
   };
 
   const sortedProducts = useMemo(() => {
-    let sorted = [...products];
+    // Normalize each product: price=regular, discount=sale price
+    let sorted = products.map((p) => {
+      const regularPrice = p.price || 0;
+      const salePrice = (p.discount && p.discount > 0 && p.discount < regularPrice) ? p.discount : regularPrice;
+      const savedAmount = regularPrice - salePrice;
+      const discountPct = regularPrice > 0 ? Math.round((savedAmount / regularPrice) * 100) : 0;
+      const brandName = p.customFields?.brand || p.brand || p.category || "";
+      const imageUrl = p.images && p.images.length > 0 ? p.images[0].url : p.image || "/placeholder.png";
+      const isInStock = p.stock === "in_stock" || p.stock === "In Stock";
+      return { ...p, _normalPrice: salePrice, _regularPrice: regularPrice, _savedAmount: savedAmount, _discountPct: discountPct, _brand: brandName, _image: imageUrl, _isInStock: isInStock };
+    });
+
     switch (sortBy) {
-      case "price-asc": sorted.sort((a, b) => a.price - b.price); break;
-      case "price-desc": sorted.sort((a, b) => b.price - a.price); break;
-      case "discount": sorted.sort((a, b) => b.drop - a.drop); break;
+      case "price-asc": sorted.sort((a, b) => a._normalPrice - b._normalPrice); break;
+      case "price-desc": sorted.sort((a, b) => b._normalPrice - a._normalPrice); break;
+      case "discount": sorted.sort((a, b) => b._discountPct - a._discountPct); break;
       case "name-asc": sorted.sort((a, b) => a.name.localeCompare(b.name)); break;
       case "name-desc": sorted.sort((a, b) => b.name.localeCompare(a.name)); break;
-      case "newest": sorted.reverse(); break;
+      case "newest": sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); break;
       default: break;
     }
-    if (selectedBrands.length > 0) sorted = sorted.filter((p) => selectedBrands.includes(p.brand));
-    sorted = sorted.filter((p) => p.price >= priceMin && p.price <= priceMax);
-    if (selectedDiscount !== null) sorted = sorted.filter((p) => p.drop >= selectedDiscount);
-    if (selectedAvailability.length > 0) sorted = sorted.filter((p) => selectedAvailability.includes(p.stock));
+    if (selectedBrands.length > 0) sorted = sorted.filter((p) => selectedBrands.includes(p._brand));
+    sorted = sorted.filter((p) => p._normalPrice >= priceMin && p._normalPrice <= priceMax);
+    if (selectedDiscount !== null) sorted = sorted.filter((p) => p._discountPct >= selectedDiscount);
+    if (selectedAvailability.length > 0) {
+      sorted = sorted.filter((p) => {
+        if (selectedAvailability.includes("In Stock") && p._isInStock) return true;
+        if (selectedAvailability.includes("Out of Stock") && !p._isInStock) return true;
+        return false;
+      });
+    }
     return sorted;
-  }, [sortBy, selectedBrands, priceMin, priceMax, selectedDiscount, selectedAvailability]);
+  }, [sortBy, selectedBrands, priceMin, priceMax, selectedDiscount, selectedAvailability, products]);
+
+  const maxPrice = useMemo(() => {
+    if (products.length === 0) return 9999999;
+    return Math.max(...products.map((p) => p.price || 0));
+  }, [products]);
 
   const filterContent = (
     <>
@@ -101,10 +148,10 @@ export default function TrendingPage() {
         <div className="text-center text-sm font-medium text-text-primary mb-3">
           ৳{priceMin.toLocaleString()} – ৳{priceMax.toLocaleString()}
         </div>
-        <input type="range" min={0} max={500} value={priceMax} onChange={(e) => setPriceMax(Number(e.target.value))} className="w-full accent-purple-mid mb-3" />
+        <input type="range" min={0} max={maxPrice} value={priceMax} onChange={(e) => setPriceMax(Number(e.target.value))} className="w-full accent-purple-mid mb-3" />
         <div className="flex items-center gap-3">
           <input type="number" value={priceMin} onChange={(e) => setPriceMin(Math.max(0, Number(e.target.value)))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-center outline-none focus:border-purple-mid transition-colors" placeholder="Min" />
-          <input type="number" value={priceMax} onChange={(e) => setPriceMax(Math.min(500, Number(e.target.value)))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-center outline-none focus:border-purple-mid transition-colors" placeholder="Max" />
+          <input type="number" value={priceMax} onChange={(e) => setPriceMax(Math.min(maxPrice, Number(e.target.value)))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-center outline-none focus:border-purple-mid transition-colors" placeholder="Max" />
         </div>
       </FilterSection>
 
@@ -113,9 +160,8 @@ export default function TrendingPage() {
           {allBrands.map((brand) => (
             <label key={brand} className="flex items-center gap-3 cursor-pointer group">
               <div
-                className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                  selectedBrands.includes(brand) ? "bg-purple-mid border-purple-mid" : "border-gray-300 group-hover:border-purple-light"
-                }`}
+                className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedBrands.includes(brand) ? "bg-purple-mid border-purple-mid" : "border-gray-300 group-hover:border-purple-light"
+                  }`}
                 onClick={() => toggleItem(selectedBrands, setSelectedBrands, brand)}
               >
                 {selectedBrands.includes(brand) && (
@@ -136,9 +182,8 @@ export default function TrendingPage() {
             <button
               key={d}
               onClick={() => setSelectedDiscount(selectedDiscount === d ? null : d)}
-              className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-lg text-sm transition-colors ${
-                selectedDiscount === d ? "bg-purple-soft text-purple-dark font-medium" : "text-text-secondary hover:bg-gray-50"
-              }`}
+              className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-lg text-sm transition-colors ${selectedDiscount === d ? "bg-purple-soft text-purple-dark font-medium" : "text-text-secondary hover:bg-gray-50"
+                }`}
             >
               {d}% or more
             </button>
@@ -151,9 +196,8 @@ export default function TrendingPage() {
           {availabilityOptions.map((opt) => (
             <label key={opt} className="flex items-center gap-3 cursor-pointer group">
               <div
-                className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                  selectedAvailability.includes(opt) ? "bg-purple-mid border-purple-mid" : "border-gray-300 group-hover:border-purple-light"
-                }`}
+                className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedAvailability.includes(opt) ? "bg-purple-mid border-purple-mid" : "border-gray-300 group-hover:border-purple-light"
+                  }`}
                 onClick={() => toggleItem(selectedAvailability, setSelectedAvailability, opt)}
               >
                 {selectedAvailability.includes(opt) && (
@@ -189,11 +233,10 @@ export default function TrendingPage() {
           <button
             key={tag}
             onClick={() => setActiveTag(tag)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              activeTag === tag
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTag === tag
                 ? "bg-purple-dark text-white shadow-md"
                 : "bg-white text-text-secondary border border-gray-200 hover:border-purple-mid hover:text-purple-mid"
-            }`}
+              }`}
           >
             {tag === "Hot Deals" && <Flame size={14} className="inline mr-1.5 -mt-0.5" />}
             {tag}
@@ -269,7 +312,7 @@ export default function TrendingPage() {
                 {hasActiveFilters && <span className="w-2 h-2 bg-purple-mid rounded-full" />}
               </button>
               <span className="text-sm text-text-muted">
-                Showing <span className="font-semibold text-text-primary">{sortedProducts.length}</span> trending products
+                Showing <span className="font-semibold text-text-primary">{loading ? "..." : sortedProducts.length}</span> trending products
               </span>
             </div>
 
@@ -298,110 +341,128 @@ export default function TrendingPage() {
             </div>
           </div>
 
-          {/* Products */}
-          {sortedProducts.length === 0 ? (
+          {/* Loading state */}
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="animate-spin text-purple-mid" size={32} />
+            </div>
+          ) : sortedProducts.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-text-muted text-lg mb-4">No products found matching your filters.</p>
-              <button onClick={resetAll} className="text-sm text-purple-mid font-semibold underline underline-offset-2">Clear all filters</button>
+              <p className="text-text-muted text-lg mb-4">No trending products found{hasActiveFilters ? " matching your filters" : ""}.</p>
+              {hasActiveFilters && <button onClick={resetAll} className="text-sm text-purple-mid font-semibold underline underline-offset-2">Clear all filters</button>}
             </div>
           ) : gridView === "grid" ? (
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-7" style={{ overflow: "visible" }}>
-              {sortedProducts.map((product, i) => (
-                <motion.div
-                  key={product.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: i * 0.03 }}
-                  whileHover={{ y: -8, rotateX: 2, rotateY: -1 }}
-                  style={{ transformPerspective: 800 }}
-                  className="bg-card-white rounded-xl overflow-hidden group shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(45,24,84,0.15)] transition-all duration-300 relative flex flex-col"
-                >
-                  {/* Trending badge */}
-                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-20 flex items-center gap-1 bg-orange-500 text-white text-[9px] sm:text-[10px] font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
-                    <Flame size={10} />
-                    Trending
-                  </div>
-                  <Link href={`/product/${product.id}`} className="flex-1 flex flex-col">
-                    <div className="relative h-36 sm:h-44 lg:h-56 bg-offwhite overflow-hidden">
-                      <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-green-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full z-10">
-                        Save Tk {(product.originalPrice - product.price).toFixed(0)}
-                      </span>
-                      <Image src={product.image} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 25vw" />
+              {sortedProducts.map((product, i) => {
+                const productId = String(product._id || product.id);
+                return (
+                  <motion.div
+                    key={productId}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.03 }}
+                    whileHover={{ y: -8, rotateX: 2, rotateY: -1 }}
+                    style={{ transformPerspective: 800 }}
+                    className="bg-card-white rounded-xl overflow-hidden group shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(45,24,84,0.15)] transition-all duration-300 relative flex flex-col"
+                  >
+                    {/* Trending badge */}
+                    <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-20 flex items-center gap-1 bg-orange-500 text-white text-[9px] sm:text-[10px] font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
+                      <Flame size={10} />
+                      Trending
                     </div>
-                    <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
-                      <p className="text-[10px] sm:text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product.brand}</p>
-                      <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 transition-colors">
-                        {product.name}
-                      </h3>
-                      <div className="mt-auto">
-                        {product.stock === "In Stock" ? (
-                          <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
-                            <span className="text-sm sm:text-lg font-bold text-gold-gradient">Tk {product.price.toFixed(2)}</span>
-                            <span className="text-[10px] sm:text-xs text-text-muted line-through">Tk {product.originalPrice.toFixed(2)}</span>
-                          </div>
-                        ) : (
-                          <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">
-                            {product.stock}
+                    <Link href={`/product/${productId}`} className="flex-1 flex flex-col">
+                      <div className="relative h-36 sm:h-44 lg:h-56 bg-offwhite overflow-hidden">
+                        {product._savedAmount > 0 && (
+                          <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-green-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full z-10">
+                            Save Tk {product._savedAmount.toFixed(0)}
                           </span>
                         )}
+                        <Image src={product._image} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 25vw" />
                       </div>
+                      <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
+                        <p className="text-[10px] sm:text-[11px] text-gold-gradient font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product._brand}</p>
+                        <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 leading-snug line-clamp-2 transition-colors">
+                          {product.name}
+                        </h3>
+                        <div className="mt-auto">
+                          {product._isInStock ? (
+                            <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
+                              <span className="text-sm sm:text-lg font-bold text-gold-gradient">Tk {product._normalPrice.toFixed(2)}</span>
+                              {product._savedAmount > 0 && (
+                                <span className="text-[10px] sm:text-xs text-text-muted line-through">Tk {product._regularPrice.toFixed(2)}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">
+                              Out of Stock
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                    <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4 mt-auto">
+                      {product._isInStock ? (
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Link href={`/product/${productId}`} className="flex-1 border border-purple-mid text-purple-mid hover:bg-purple-soft text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors text-center">
+                            VIEW
+                          </Link>
+                          <button onClick={() => addToCart(productId)} className="flex-1 bg-purple-dark hover:scale-[1.03] hover:bg-[#2a2a2a] text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-all duration-200">
+                            <span className="text-gold-gradient">ADD TO CART</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <button className="w-full bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>Out of Stock</button>
+                      )}
                     </div>
-                  </Link>
-                  <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4 mt-auto">
-                    {product.stock === "In Stock" ? (
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <Link href={`/product/${product.id}`} className="flex-1 border border-purple-mid text-purple-mid hover:bg-purple-soft text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors text-center">
-                          VIEW
-                        </Link>
-                        <button onClick={() => addToCart(product.id)} className="flex-1 bg-purple-dark hover:scale-[1.03] hover:bg-[#2a2a2a] text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-all duration-200">
-                          <span className="text-gold-gradient">ADD TO CART</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <button className="w-full bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>{product.stock}</button>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           ) : (
             <div className="space-y-4">
-              {sortedProducts.map((product, i) => (
-                <motion.div key={product.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: i * 0.03 }}>
-                  <Link href={`/product/${product.id}`}>
-                    <div className="bg-white rounded-xl overflow-hidden flex group hover:shadow-md transition-all duration-300">
-                      <div className="relative w-28 sm:w-48 h-32 sm:h-44 bg-offwhite flex-shrink-0 overflow-hidden">
-                        <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-orange-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
-                          <Flame size={10} />
-                          Trending
-                        </div>
-                        <Image src={product.image} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="200px" />
-                      </div>
-                      <div className="flex-1 p-3 sm:p-5 flex flex-col justify-center">
-                        <p className="text-[10px] sm:text-[11px] text-purple-mid font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product.brand}</p>
-                        <h3 className="text-sm sm:text-base font-semibold text-text-primary mb-1 sm:mb-2 group-hover:text-purple-dark transition-colors">{product.name}</h3>
-                        <p className="text-xs sm:text-sm text-text-secondary mb-2 sm:mb-3 line-clamp-2">{product.description}</p>
-                        <div className="flex items-center gap-0.5 mb-1.5 sm:mb-2">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star key={s} size={13} className={s <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-200"} />
-                          ))}
-                        </div>
-                        {product.stock === "In Stock" ? (
-                          <div className="flex items-baseline gap-2 sm:gap-3">
-                            <span className="text-base sm:text-xl font-bold text-orange-600">Tk {product.price.toFixed(2)}</span>
-                            <span className="text-xs sm:text-sm text-text-muted line-through">Tk {product.originalPrice.toFixed(2)}</span>
-                            <span className="hidden sm:inline text-xs text-green-600 font-semibold">Save Tk {(product.originalPrice - product.price).toFixed(0)}</span>
+              {sortedProducts.map((product, i) => {
+                const productId = String(product._id || product.id);
+                return (
+                  <motion.div key={productId} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: i * 0.03 }}>
+                    <Link href={`/product/${productId}`}>
+                      <div className="bg-white rounded-xl overflow-hidden flex group hover:shadow-md transition-all duration-300">
+                        <div className="relative w-28 sm:w-48 h-32 sm:h-44 bg-offwhite flex-shrink-0 overflow-hidden">
+                          <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-orange-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
+                            <Flame size={10} />
+                            Trending
                           </div>
-                        ) : (
-                          <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-red-100 text-red-600">
-                            {product.stock}
-                          </span>
-                        )}
+                          <Image src={product._image} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="200px" />
+                        </div>
+                        <div className="flex-1 p-3 sm:p-5 flex flex-col justify-center">
+                          <p className="text-[10px] sm:text-[11px] text-purple-mid font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product._brand}</p>
+                          <h3 className="text-sm sm:text-base font-semibold text-text-primary mb-1 sm:mb-2 group-hover:text-purple-dark transition-colors">{product.name}</h3>
+                          <p className="text-xs sm:text-sm text-text-secondary mb-2 sm:mb-3 line-clamp-2">{product.description}</p>
+                          <div className="flex items-center gap-0.5 mb-1.5 sm:mb-2">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star key={s} size={13} className={s <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-200"} />
+                            ))}
+                          </div>
+                          {product._isInStock ? (
+                            <div className="flex items-baseline gap-2 sm:gap-3">
+                              <span className="text-base sm:text-xl font-bold text-orange-600">Tk {product._normalPrice.toFixed(2)}</span>
+                              {product._savedAmount > 0 && (
+                                <>
+                                  <span className="text-xs sm:text-sm text-text-muted line-through">Tk {product._regularPrice.toFixed(2)}</span>
+                                  <span className="hidden sm:inline text-xs text-green-600 font-semibold">Save Tk {product._savedAmount.toFixed(0)}</span>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-red-100 text-red-600">
+                              Out of Stock
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
+                    </Link>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>
