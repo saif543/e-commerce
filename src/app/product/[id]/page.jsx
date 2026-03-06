@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductDetail from "@/components/ProductDetail";
@@ -6,7 +7,10 @@ import ProductDetail from "@/components/ProductDetail";
 export default async function ProductPage({ params }) {
   const { id } = await params;
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const headersList = await headers();
+  const host = headersList.get("host") || "localhost:3000";
+  const protocol = headersList.get("x-forwarded-proto") || "http";
+  const baseUrl = `${protocol}://${host}`;
 
   let product = null;
   let relatedProducts = [];
@@ -54,4 +58,3 @@ export default async function ProductPage({ params }) {
     </div>
   );
 }
-
