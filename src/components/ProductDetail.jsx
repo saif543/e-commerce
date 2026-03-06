@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingCart,
@@ -24,6 +25,7 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
   const [qty, setQty] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
   const { addToCart } = useCart();
+  const router = useRouter();
 
   // Zoom state
   const imageRef = useRef(null);
@@ -271,6 +273,10 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                addToCart(productId, qty);
+                router.push(`/cart?checkout=true&buyNowId=${productId}`);
+              }}
               className="w-full border-2 border-[#C4A265] text-[#C4A265] hover:bg-white/60 py-3.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2"
             >
               <Zap size={16} />

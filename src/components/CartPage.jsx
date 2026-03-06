@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Trash2, Minus, Plus, ArrowLeft, MapPin, Truck, CheckCircle, ChevronDown, X, Loader2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -35,11 +36,13 @@ const SHIPPING_OUTSIDE_DHAKA = 120;
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQty, clearCart } = useCart();
+  const searchParams = useSearchParams();
   const [dbProducts, setDbProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [knownIds, setKnownIds] = useState(new Set());
-  const [showCheckout, setShowCheckout] = useState(false);
+  const buyNowId = searchParams.get("buyNowId");
+  const [showCheckout, setShowCheckout] = useState(searchParams.get("checkout") === "true");
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderedCount, setOrderedCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,7 +89,7 @@ export default function CartPage() {
     })
     .filter(Boolean);
 
-  // Auto-select only truly new items (not previously seen & unchecked)
+  // Auto-select logic: if Buy Now mode, select only that item; otherwise select new items
   const cartIds = cartItems.map((i) => i.id);
   const newIds = cartIds.filter((id) => !knownIds.has(id));
   if (newIds.length > 0) {
@@ -95,11 +98,16 @@ export default function CartPage() {
       newIds.forEach((id) => next.add(id));
       return next;
     });
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      newIds.forEach((id) => next.add(id));
-      return next;
-    });
+    if (buyNowId) {
+      // Buy Now mode: only select the buy-now item
+      setSelectedIds(new Set([buyNowId]));
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        newIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
   }
 
   const toggleSelect = (id) => {
