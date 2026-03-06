@@ -38,7 +38,7 @@ export default function Products({ title = "Most Loved Products", subtitle = "Di
           transition={{ duration: 0.5 }}
           className="text-center mb-8 min-[768px]:mb-12"
         >
-          <h2 className="font-serif text-2xl min-[480px]:text-3xl md:text-4xl text-text-primary mb-2 min-[480px]:mb-3">{title}</h2>
+          <h2 className="text-2xl min-[480px]:text-3xl md:text-4xl font-semibold text-text-primary mb-2 min-[480px]:mb-3">{title}</h2>
           <p className="text-text-secondary text-xs min-[480px]:text-sm">{subtitle}</p>
         </motion.div>
 

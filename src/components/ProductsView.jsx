@@ -286,7 +286,7 @@ export default function ProductsView() {
 
             {/* Title */}
             <div className="mb-5 min-[768px]:mb-8">
-                <h1 className="font-serif text-xl min-[480px]:text-2xl min-[768px]:text-3xl md:text-4xl text-text-primary mb-1 min-[480px]:mb-2">{pageTitle}</h1>
+                <h1 className="text-xl min-[480px]:text-2xl min-[768px]:text-3xl md:text-4xl font-semibold text-text-primary mb-1 min-[480px]:mb-2">{pageTitle}</h1>
                 <p className="text-text-secondary text-xs min-[480px]:text-sm min-[768px]:text-base">{pageDescription}</p>
             </div>
 
@@ -426,7 +426,7 @@ export default function ProductsView() {
                             )}
                         </div>
                     ) : gridView === "grid" ? (
-                        <div className="grid grid-cols-2 min-[768px]:grid-cols-2 min-[1024px]:grid-cols-3 min-[1280px]:grid-cols-4 gap-2 min-[480px]:gap-3 min-[640px]:gap-4 min-[768px]:gap-5" style={{ overflow: "visible" }}>
+                        <div className="grid grid-cols-2 min-[640px]:grid-cols-3 min-[768px]:grid-cols-2 min-[920px]:grid-cols-3 min-[1280px]:grid-cols-4 gap-2 min-[480px]:gap-3 min-[640px]:gap-4 min-[768px]:gap-4" style={{ overflow: "visible" }}>
                             {sortedProducts.map((product, i) => (
                                 <ProductCard key={String(product._id || product.id)} product={product} index={i} />
                             ))}

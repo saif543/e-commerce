@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Grid3X3, LayoutList, Star, SlidersHorizontal, X, TrendingUp, Flame, Loader2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import ProductCard from "./ProductCard";
 
 const sortOptions = [
   { label: "Most Popular", value: "default" },
@@ -215,25 +216,25 @@ export default function TrendingPage() {
   );
 
   return (
-    <section className="max-w-[1440px] mx-auto px-6 py-8">
+    <section className="max-w-[1440px] mx-auto px-2 min-[480px]:px-4 min-[640px]:px-5 min-[768px]:px-6 py-8">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 bg-purple-soft rounded-full flex items-center justify-center">
             <TrendingUp size={20} className="text-purple-dark" />
           </div>
-          <h1 className="font-serif text-3xl md:text-4xl text-text-primary">Trending Now</h1>
+          <h1 className="text-xl min-[480px]:text-2xl min-[768px]:text-3xl md:text-4xl font-semibold text-text-primary">Trending Now</h1>
         </div>
-        <p className="text-text-secondary text-base">The hottest products people are loving right now</p>
+        <p className="text-text-secondary text-xs min-[480px]:text-sm min-[768px]:text-base">The hottest products people are loving right now</p>
       </div>
 
-      {/* Trending tags */}
-      <div className="flex flex-wrap gap-3 mb-8">
+      {/* Trending tags — hidden on mobile, scrollable row on tablet+ */}
+      <div className="hidden min-[640px]:flex flex-wrap gap-2 min-[768px]:gap-3 mb-4 min-[768px]:mb-8">
         {trendingTags.map((tag) => (
           <button
             key={tag}
             onClick={() => setActiveTag(tag)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTag === tag
+            className={`px-3 min-[768px]:px-4 py-1.5 min-[768px]:py-2 rounded-full text-xs min-[768px]:text-sm font-medium transition-all ${activeTag === tag
               ? "bg-purple-dark text-white shadow-md"
               : "bg-white text-text-secondary border border-gray-200 hover:border-purple-mid hover:text-purple-mid"
               }`}
@@ -252,7 +253,7 @@ export default function TrendingPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 z-50 md:hidden"
+              className="fixed inset-0 bg-black/40 z-50 min-[768px]:hidden"
               onClick={() => setMobileFilterOpen(false)}
             />
             <motion.div
@@ -260,7 +261,7 @@ export default function TrendingPage() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed top-0 left-0 h-full w-[300px] bg-white z-50 md:hidden overflow-y-auto shadow-2xl"
+              className="fixed top-0 left-0 h-full w-[300px] bg-white z-50 min-[768px]:hidden overflow-y-auto shadow-2xl"
             >
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
                 <span className="text-base font-bold text-text-primary">Filter By</span>
@@ -284,9 +285,9 @@ export default function TrendingPage() {
         )}
       </AnimatePresence>
 
-      <div className="flex gap-6">
+      <div className="flex gap-3 min-[768px]:gap-4 min-[1024px]:gap-6">
         {/* Sidebar filters — desktop */}
-        <aside className="hidden md:block w-64 flex-shrink-0">
+        <aside className="hidden min-[768px]:block w-48 min-[1024px]:w-56 min-[1280px]:w-64 flex-shrink-0">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 sticky top-24 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <span className="text-base font-bold text-text-primary">Filter By</span>
@@ -301,18 +302,18 @@ export default function TrendingPage() {
         {/* Right content */}
         <div className="flex-1">
           {/* Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-2 min-[480px]:gap-3 mb-3 min-[480px]:mb-4 min-[768px]:mb-6">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileFilterOpen(true)}
-                className="md:hidden flex items-center gap-2 bg-white border border-gray-200 text-sm font-medium text-text-primary px-3 py-2 rounded-lg hover:border-purple-mid transition-colors"
+                className="min-[768px]:hidden flex items-center gap-2 bg-white border border-gray-200 text-xs min-[480px]:text-sm font-medium text-text-primary px-2.5 min-[480px]:px-3 py-1.5 min-[480px]:py-2 rounded-lg hover:border-purple-mid transition-colors"
               >
                 <SlidersHorizontal size={16} />
                 Filters
                 {hasActiveFilters && <span className="w-2 h-2 bg-purple-mid rounded-full" />}
               </button>
-              <span className="text-sm text-text-muted">
-                Showing <span className="font-semibold text-text-primary">{loading ? "..." : sortedProducts.length}</span> trending products
+              <span className="text-[10px] min-[480px]:text-xs min-[768px]:text-sm text-text-muted">
+                Showing <span className="font-semibold text-text-primary">{loading ? "..." : sortedProducts.length}</span> products
               </span>
             </div>
 
@@ -322,7 +323,7 @@ export default function TrendingPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-white border border-gray-200 text-sm text-text-primary font-medium px-3 py-2 rounded-lg outline-none cursor-pointer hover:border-purple-mid focus:border-purple-mid transition-colors"
+                  className="bg-white border border-gray-200 text-[10px] min-[480px]:text-xs min-[768px]:text-sm text-text-primary font-medium px-2 min-[480px]:px-3 py-1.5 min-[480px]:py-2 rounded-lg outline-none cursor-pointer hover:border-purple-mid focus:border-purple-mid transition-colors"
                 >
                   {sortOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -352,108 +353,41 @@ export default function TrendingPage() {
               {hasActiveFilters && <button onClick={resetAll} className="text-sm text-purple-mid font-semibold underline underline-offset-2">Clear all filters</button>}
             </div>
           ) : gridView === "grid" ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-7" style={{ overflow: "visible" }}>
-              {sortedProducts.map((product, i) => {
-                const productId = String(product._id || product.id);
-                return (
-                  <motion.div
-                    key={productId}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.03 }}
-                    whileHover={{ y: -8, rotateX: 2, rotateY: -1 }}
-                    style={{ transformPerspective: 800 }}
-                    className="bg-card-white rounded-xl overflow-hidden group shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(45,24,84,0.15)] transition-all duration-300 relative flex flex-col"
-                  >
-                    {/* Trending badge */}
-                    <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-20 flex items-center gap-1 bg-orange-500 text-white text-[9px] sm:text-[10px] font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
-                      <Flame size={10} />
-                      Trending
-                    </div>
-                    <Link href={`/product/${productId}`} className="flex-1 flex flex-col">
-                      <div className="relative h-36 sm:h-44 lg:h-56 bg-offwhite overflow-hidden">
-                        {product._savedAmount > 0 && (
-                          <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-green-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full z-10">
-                            Save Tk {product._savedAmount.toFixed(0)}
-                          </span>
-                        )}
-                        <Image src={product._image} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 25vw" />
-                      </div>
-                      <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
-                        <p className="text-[10px] sm:text-[11px] text-text-muted font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product._brand}</p>
-                        <h3 className="text-xs sm:text-sm font-normal text-text-primary/85 mb-2 sm:mb-3 leading-snug line-clamp-2">
-                          {product.name}
-                        </h3>
-                        <div className="mt-auto">
-                          {product._isInStock ? (
-                            <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-3">
-                              <span className="text-sm sm:text-lg font-bold text-text-primary">Tk {product._normalPrice.toFixed(2)}</span>
-                              {product._savedAmount > 0 && (
-                                <span className="text-[10px] sm:text-xs text-text-muted line-through">Tk {product._regularPrice.toFixed(2)}</span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full mb-2 sm:mb-3 bg-red-100 text-red-600">
-                              Out of Stock
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-                    <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4 mt-auto">
-                      {product._isInStock ? (
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <Link href={`/product/${productId}`} className="flex-1 border border-purple-mid text-purple-mid hover:bg-purple-soft text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-colors text-center">
-                            VIEW
-                          </Link>
-                          <button onClick={() => addToCart(productId)} className="flex-1 bg-purple-dark hover:scale-[1.03] hover:bg-[#2a2a2a] text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md transition-all duration-200">
-                            <span className="text-gold-gradient">ADD TO CART</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <button className="w-full bg-gray-300 text-gray-500 text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 rounded-md cursor-not-allowed" disabled>Out of Stock</button>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
+            <div className="grid grid-cols-2 min-[640px]:grid-cols-3 min-[768px]:grid-cols-2 min-[920px]:grid-cols-3 min-[1280px]:grid-cols-4 gap-2 min-[480px]:gap-3 min-[640px]:gap-4 min-[768px]:gap-4">
+              {sortedProducts.map((product, i) => (
+                <ProductCard key={String(product._id || product.id)} product={product} index={i} />
+              ))}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-2 min-[480px]:space-y-3 min-[768px]:space-y-4">
               {sortedProducts.map((product, i) => {
                 const productId = String(product._id || product.id);
+                const regularPrice = product._regularPrice || 0;
+                const salePrice = product._normalPrice || 0;
+                const savedAmount = product._savedAmount || 0;
                 return (
                   <motion.div key={productId} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: i * 0.03 }}>
                     <Link href={`/product/${productId}`}>
-                      <div className="bg-white rounded-xl overflow-hidden flex group hover:shadow-md transition-all duration-300">
-                        <div className="relative w-28 sm:w-48 h-32 sm:h-44 bg-offwhite flex-shrink-0 overflow-hidden">
-                          <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-orange-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
-                            <Flame size={10} />
-                            Trending
-                          </div>
+                      <div className="bg-white rounded-lg min-[480px]:rounded-xl overflow-hidden flex group hover:shadow-md transition-all duration-300">
+                        <div className="relative w-24 min-[480px]:w-32 min-[640px]:w-40 min-[768px]:w-48 h-28 min-[480px]:h-32 min-[640px]:h-36 min-[768px]:h-44 bg-offwhite flex-shrink-0 overflow-hidden">
                           <Image src={product._image} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="200px" />
                         </div>
-                        <div className="flex-1 p-3 sm:p-5 flex flex-col justify-center">
-                          <p className="text-[10px] sm:text-[11px] text-purple-mid font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product._brand}</p>
-                          <h3 className="text-sm sm:text-base font-semibold text-text-primary mb-1 sm:mb-2 group-hover:text-purple-dark transition-colors">{product.name}</h3>
-                          <p className="text-xs sm:text-sm text-text-secondary mb-2 sm:mb-3 line-clamp-2">{product.description}</p>
-                          <div className="flex items-center gap-0.5 mb-1.5 sm:mb-2">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star key={s} size={13} className={s <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-200"} />
-                            ))}
-                          </div>
+                        <div className="flex-1 p-2 min-[480px]:p-3 min-[640px]:p-4 min-[768px]:p-5 flex flex-col justify-center">
+                          <p className="text-[8px] min-[480px]:text-[9px] min-[768px]:text-[11px] text-text-muted font-semibold uppercase tracking-wider mb-0.5">{product._brand}</p>
+                          <h3 className="text-[10px] min-[480px]:text-xs min-[768px]:text-sm font-semibold text-text-primary mb-1 min-[480px]:mb-1.5 min-[768px]:mb-2 group-hover:text-purple-dark transition-colors line-clamp-1">{product.name}</h3>
+                          <p className="text-[9px] min-[480px]:text-[10px] min-[768px]:text-sm text-text-secondary mb-1.5 min-[768px]:mb-3 line-clamp-2 hidden min-[480px]:block">{product.description}</p>
                           {product._isInStock ? (
-                            <div className="flex items-baseline gap-2 sm:gap-3">
-                              <span className="text-base sm:text-xl font-bold text-orange-600">Tk {product._normalPrice.toFixed(2)}</span>
-                              {product._savedAmount > 0 && (
+                            <div className="flex items-baseline gap-1.5 min-[480px]:gap-2 min-[768px]:gap-3">
+                              <span className="text-[11px] min-[480px]:text-sm min-[768px]:text-lg font-semibold text-text-primary whitespace-nowrap">Tk {Math.round(salePrice).toLocaleString("en-IN")}</span>
+                              {savedAmount > 0 && (
                                 <>
-                                  <span className="text-xs sm:text-sm text-text-muted line-through">Tk {product._regularPrice.toFixed(2)}</span>
-                                  <span className="hidden sm:inline text-xs text-green-600 font-semibold">Save Tk {product._savedAmount.toFixed(0)}</span>
+                                  <span className="text-[8px] min-[480px]:text-[10px] min-[768px]:text-xs text-text-muted line-through whitespace-nowrap">Tk {Math.round(regularPrice).toLocaleString("en-IN")}</span>
+                                  <span className="hidden min-[640px]:inline text-[10px] min-[768px]:text-xs text-green-600 font-semibold whitespace-nowrap">Save Tk {Math.round(savedAmount).toLocaleString("en-IN")}</span>
                                 </>
                               )}
                             </div>
                           ) : (
-                            <span className="inline-block text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-red-100 text-red-600">
+                            <span className="inline-block text-[8px] min-[480px]:text-[9px] min-[768px]:text-xs font-bold px-1.5 min-[768px]:px-3 py-0.5 min-[768px]:py-1.5 rounded-full bg-red-100 text-red-600">
                               Out of Stock
                             </span>
                           )}

@@ -175,7 +175,7 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
           </p>
 
           {/* Name */}
-          <h1 className="font-serif text-3xl md:text-4xl text-text-primary mb-4 leading-tight">
+          <h1 className="text-3xl md:text-4xl font-semibold text-text-primary mb-4 leading-tight">
             {product.name}
           </h1>
 
@@ -388,7 +388,7 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
       {/* Related Products */}
       {relatedProducts.length > 0 && (
         <div className="mt-10 mb-8">
-          <h2 className="font-serif text-2xl md:text-3xl text-text-primary mb-8">Related Products</h2>
+          <h2 className="text-2xl md:text-3xl font-semibold text-text-primary mb-8">Related Products</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
             {relatedProducts.map((rp, i) => {
               const rpId = String(rp._id || rp.id);

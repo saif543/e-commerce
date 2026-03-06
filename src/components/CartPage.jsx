@@ -208,7 +208,7 @@ export default function CartPage() {
           >
             <CheckCircle size={48} className="text-green-600" />
           </motion.div>
-          <h1 className="font-serif text-3xl md:text-4xl text-text-primary mb-3">Order Confirmed!</h1>
+          <h1 className="text-3xl md:text-4xl font-semibold text-text-primary mb-3">Order Confirmed!</h1>
           <p className="text-text-secondary mb-2 max-w-md mx-auto">
             Thank you, <span className="font-semibold text-text-primary">{name}</span>! Your order of {orderedCount} item{orderedCount !== 1 ? "s" : ""} has been placed successfully.
           </p>
@@ -228,7 +228,7 @@ export default function CartPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-6 py-12">
       <div className="mb-8">
-        <h1 className="font-serif text-3xl md:text-4xl text-text-primary mb-2">
+        <h1 className="text-3xl md:text-4xl font-semibold text-text-primary mb-2">
           {showCheckout ? "Checkout" : "Shopping Cart"}
         </h1>
         <p className="text-text-secondary text-sm">

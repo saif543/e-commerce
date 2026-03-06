@@ -15,13 +15,24 @@
   --color-text-muted: #9CA3AF;
   --color-gold-start: #B8860B;
   --color-gold-end: #E6C068;
-  --font-sans: var(--font-poppins);
-  --font-serif: Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-poppins), "Poppins", sans-serif;
+  --font-serif: var(--font-poppins), "Poppins", sans-serif;
+  --font-mono: var(--font-poppins), "Poppins", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  font-family: inherit;
 }
 
 body {
   background: var(--color-offwhite);
   color: var(--color-text-primary);
+  font-family: var(--font-poppins), "Poppins", sans-serif;
+}
+
+input, select, textarea, button {
   font-family: var(--font-poppins), "Poppins", sans-serif;
 }
 

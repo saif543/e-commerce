@@ -25,7 +25,7 @@ export default function Categories() {
     <section className="py-8 min-[480px]:py-10 min-[768px]:py-16 overflow-hidden">
       {/* Header */}
       <div className="text-center mb-5 min-[480px]:mb-7 min-[768px]:mb-10 px-4 min-[480px]:px-6">
-        <h2 className="font-serif text-xl min-[480px]:text-2xl md:text-3xl text-text-primary mb-1 min-[480px]:mb-2">Browse by Category</h2>
+        <h2 className="text-xl min-[480px]:text-2xl md:text-3xl font-semibold text-text-primary mb-1 min-[480px]:mb-2">Browse by Category</h2>
         <p className="text-text-secondary text-xs min-[480px]:text-sm">Find what you need, fast</p>
       </div>
 
