@@ -345,7 +345,7 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
                           <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">
                             {key}
                           </p>
-                          <p className="text-sm font-semibold text-text-primary">{String(value)}</p>
+                          <p className="text-sm font-normal text-text-primary">{String(value)}</p>
                         </div>
                       ))}
                     </div>
