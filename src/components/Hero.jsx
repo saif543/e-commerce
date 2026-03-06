@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const FALLBACK_SLIDES = [
   {
     image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=1400&h=700&fit=crop",
-    alt: "Premium Headphones",
+    link: "",
   },
 ];
 
@@ -30,7 +30,7 @@ function mapApiSlide(s) {
   const imageUrl = s.image?.url || s.image || '';
   return {
     image: imageUrl,
-    alt: s.alt || s.title || 'Slide',
+    link: s.link || '',
   };
 }
 
@@ -49,7 +49,7 @@ export default function Hero() {
           setSlide([0, 1]);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const goTo = useCallback(
@@ -87,8 +87,14 @@ export default function Hero() {
 
   const slide = slides[current];
 
+  const handleSlideClick = () => {
+    if (slide.link) {
+      window.open(slide.link, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
-    <section className="relative w-full h-[260px] sm:h-[320px] md:h-[380px] lg:h-[420px] overflow-hidden cursor-grab active:cursor-grabbing select-none">
+    <section className="relative w-full overflow-hidden select-none" style={{ aspectRatio: '21/7', minHeight: '220px', maxHeight: '520px' }}>
       {/* Background Images */}
       <AnimatePresence initial={false} custom={direction} mode="popLayout">
         <motion.div
@@ -103,12 +109,13 @@ export default function Hero() {
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.15}
           onDragEnd={handleDragEnd}
-          className="absolute inset-0"
+          onClick={handleSlideClick}
+          className={`absolute inset-0 ${slide.link ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
         >
           {slide.image ? (
             <Image
               src={slide.image}
-              alt={slide.alt}
+              alt="Slide"
               fill
               className="object-cover pointer-events-none"
               sizes="100vw"
@@ -123,13 +130,13 @@ export default function Hero() {
 
       {/* Left / Right Arrows */}
       <button
-        onClick={prev}
+        onClick={(e) => { e.stopPropagation(); prev(); }}
         className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/25 transition-colors"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
       </button>
       <button
-        onClick={next}
+        onClick={(e) => { e.stopPropagation(); next(); }}
         className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/25 transition-colors"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
@@ -140,7 +147,7 @@ export default function Hero() {
         {slides.map((_, i) => (
           <button
             key={i}
-            onClick={() => goTo(i)}
+            onClick={(e) => { e.stopPropagation(); goTo(i); }}
             className={`rounded-full transition-all duration-300 ${i === current
               ? "w-10 h-2.5 bg-white"
               : "w-2.5 h-2.5 bg-white/40 hover:bg-white/60"

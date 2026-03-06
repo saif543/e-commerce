@@ -234,8 +234,8 @@ export default function TrendingPage() {
             key={tag}
             onClick={() => setActiveTag(tag)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTag === tag
-                ? "bg-purple-dark text-white shadow-md"
-                : "bg-white text-text-secondary border border-gray-200 hover:border-purple-mid hover:text-purple-mid"
+              ? "bg-purple-dark text-white shadow-md"
+              : "bg-white text-text-secondary border border-gray-200 hover:border-purple-mid hover:text-purple-mid"
               }`}
           >
             {tag === "Hot Deals" && <Flame size={14} className="inline mr-1.5 -mt-0.5" />}
@@ -377,7 +377,7 @@ export default function TrendingPage() {
                             Save Tk {product._savedAmount.toFixed(0)}
                           </span>
                         )}
-                        <Image src={product._image} alt={product.name} fill className="object-contain group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 25vw" />
+                        <Image src={product._image} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 25vw" />
                       </div>
                       <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
                         <p className="text-[10px] sm:text-[11px] text-text-muted font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">{product._brand}</p>

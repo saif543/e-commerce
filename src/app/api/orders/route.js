@@ -15,7 +15,7 @@ const WRITE_RATE_LIMIT = 20
 const WRITE_WINDOW_MS = 15 * 60 * 1000
 
 const VALID_ORDER_STATUSES = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']
-const VALID_PAYMENT_METHODS = ['bkash', 'nagad', 'rocket', 'card', 'cash_on_delivery', 'bank_transfer']
+const VALID_PAYMENT_METHODS = ['hkash', 'nagad', 'rocket', 'card', 'cash_on_delivery', 'bank_transfer', 'cash_on_delivery']
 
 function getClientIP(req) {
     return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown'
@@ -53,26 +53,27 @@ function sanitizeAddress(addr) {
     if (!addr || typeof addr !== 'object') return null
     return {
         fullName: sanitizeString(addr.fullName || '', 100),
+        email: sanitizeString(addr.email || '', 100),
         phone: sanitizeString(addr.phone || '', 20),
-        addressLine1: sanitizeString(addr.addressLine1 || '', MAX_ADDRESS_LENGTH),
-        addressLine2: sanitizeString(addr.addressLine2 || '', MAX_ADDRESS_LENGTH),
-        city: sanitizeString(addr.city || '', 100),
-        state: sanitizeString(addr.state || '', 100),
-        postalCode: sanitizeString(addr.postalCode || '', 20),
-        country: sanitizeString(addr.country || 'Bangladesh', 100),
+        region: sanitizeString(addr.region || 'Bangladesh', 100),
+        shippingZone: sanitizeString(addr.shippingZone || '', 50),
+        area: sanitizeString(addr.area || '', 100),
+        streetAddress: sanitizeString(addr.streetAddress || '', MAX_ADDRESS_LENGTH)
     }
 }
 
 function sanitizeItems(items) {
     if (!Array.isArray(items) || items.length === 0 || items.length > MAX_ITEMS_PER_ORDER) return null
     return items.map(item => {
-        const productId = sanitizeString(String(item.productId || ''), 100)
+        const productId = sanitizeString(String(item.productId || item.id || ''), 100)
         const name = sanitizeString(String(item.name || ''), 300)
+        const brand = sanitizeString(String(item.brand || ''), 100)
         const price = parseFloat(item.price)
-        const quantity = parseInt(item.quantity, 10)
+        const originalPrice = parseFloat(item.originalPrice || item.price)
+        const quantity = parseInt(item.quantity || item.qty, 10)
         const image = sanitizeString(String(item.image || ''), 500)
         if (!productId || !name || !isValidPrice(price) || isNaN(quantity) || quantity < 1 || quantity > MAX_QUANTITY_PER_ITEM) return null
-        return { productId, name, price, quantity, image }
+        return { productId, name, brand, price, originalPrice, quantity, image }
     }).filter(Boolean)
 }
 
@@ -101,7 +102,7 @@ export async function GET(req) {
             try { oid = new ObjectId(orderId) } catch { return NextResponse.json({ error: 'Invalid order id' }, { status: 400 }) }
             const order = await db.collection('orders').findOne({ _id: oid })
             if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
-            if (user.role !== 'admin' && order.userEmail !== user.email) return createAuthError('Access denied', 403)
+            if (user.role !== 'admin' && order.userEmail !== user.email && order.userPhone !== user.phone) return createAuthError('Access denied', 403)
             return NextResponse.json({ order })
         }
 
@@ -117,8 +118,10 @@ export async function GET(req) {
             return NextResponse.json({ orders, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } })
         }
 
-        const query = { userEmail: user.email }
+        const query = { $or: [{ userEmail: user.email }] }
+        if (user.phone) query.$or.push({ userPhone: user.phone })
         if (status && VALID_ORDER_STATUSES.includes(status)) query.status = status
+
         const skip = (page - 1) * limit
         const [orders, total] = await Promise.all([
             db.collection('orders').find(query).skip(skip).limit(limit).sort({ createdAt: -1 }).toArray(),
@@ -138,8 +141,11 @@ export async function POST(req) {
     try {
         await checkRateLimit(req)
         checkWriteRateLimit(req)
-        user = await verifyApiToken(req)
-    } catch (authErr) { return createAuthError(authErr.message, authErr.message.includes('rate') ? 429 : 401) }
+        // Checkout can be guest or authenticated
+        try { user = await verifyApiToken(req) } catch { /* guest checkout */ }
+    } catch (err) {
+        if (err.message.includes('rate')) return createAuthError(err.message, 429)
+    }
 
     try {
         const contentLength = parseInt(req.headers.get('content-length') || '0', 10)
@@ -149,36 +155,45 @@ export async function POST(req) {
         const items = sanitizeItems(body.items)
         if (!items || items.length === 0) return NextResponse.json({ error: 'Valid items are required' }, { status: 400 })
 
-        const shippingAddress = sanitizeAddress(body.shippingAddress)
-        if (!shippingAddress?.fullName || !shippingAddress?.addressLine1 || !shippingAddress?.city) {
-            return NextResponse.json({ error: 'Valid shipping address required (fullName, addressLine1, city)' }, { status: 400 })
+        const deliveryAddress = sanitizeAddress(body.deliveryAddress)
+        if (!deliveryAddress?.fullName || !deliveryAddress?.phone || !deliveryAddress?.shippingZone || !deliveryAddress?.area || !deliveryAddress?.streetAddress) {
+            return NextResponse.json({ error: 'Valid delivery address required (fullName, phone, shippingZone, area, streetAddress)' }, { status: 400 })
         }
 
-        if (!body.paymentMethod || !VALID_PAYMENT_METHODS.includes(body.paymentMethod)) {
+        const paymentMethod = sanitizeString(body.paymentMethod || 'cash_on_delivery', 50)
+        if (!VALID_PAYMENT_METHODS.includes(paymentMethod)) {
             return NextResponse.json({ error: `Valid payment method required: ${VALID_PAYMENT_METHODS.join(', ')}` }, { status: 400 })
         }
 
-        // Calculate total SERVER-SIDE — never trust client total
-        const totalAmount = parseFloat(items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2))
+        const SHIPPING_INSIDE_DHAKA = 60;
+        const SHIPPING_OUTSIDE_DHAKA = 120;
+        const shippingCost = deliveryAddress.shippingZone === 'inside' ? SHIPPING_INSIDE_DHAKA : SHIPPING_OUTSIDE_DHAKA;
+        const subtotal = parseFloat(items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2))
+        const totalAmount = parseFloat((subtotal + shippingCost).toFixed(2))
 
         const client = await clientPromise
         const db = client.db('ECOM')
         const newOrder = {
-            userId: user.dbUserId || user.userId,
-            userEmail: user.email,
-            userName: user.name || '',
-            items, totalAmount, shippingAddress,
-            paymentMethod: body.paymentMethod,
+            userId: user?.dbUserId || user?.userId || 'guest',
+            userEmail: deliveryAddress.email || user?.email || '',
+            userName: deliveryAddress.fullName,
+            userPhone: deliveryAddress.phone,
+            items,
+            subtotal,
+            shippingCost,
+            totalAmount,
+            deliveryAddress,
+            paymentMethod,
             status: 'pending',
-            notes: sanitizeString(body.notes || '', 500),
-            createdAt: new Date(), updatedAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
         }
 
         const result = await db.collection('orders').insertOne(newOrder)
         const created = await db.collection('orders').findOne({ _id: result.insertedId })
 
-        logAudit('ORDER_PLACED', { userId: user.userId, userEmail: user.email, orderId: result.insertedId.toString(), totalAmount, itemCount: items.length }, req)
-        return NextResponse.json({ message: 'Order placed successfully', order: created }, { status: 201 })
+        logAudit('ORDER_PLACED', { userId: newOrder.userId, userEmail: newOrder.userEmail, orderId: result.insertedId.toString(), totalAmount, itemCount: items.length }, req)
+        return NextResponse.json({ success: true, message: 'Order placed successfully', order: created }, { status: 201 })
 
     } catch (err) {
         console.error('❌ POST /api/orders error:', err)
@@ -201,11 +216,11 @@ export async function PUT(req) {
         if (contentLength > 10_000) return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
         const { ObjectId } = await import('mongodb')
         const body = await req.json()
-        const { status, notes } = body
+        const { status, notes, userName, userEmail, userPhone, deliveryAddress } = body
         const id = sanitizeString(body.id || '', 100)
 
         if (!id) return NextResponse.json({ error: 'Order id is required' }, { status: 400 })
-        if (!status || !VALID_ORDER_STATUSES.includes(status)) {
+        if (status && !VALID_ORDER_STATUSES.includes(status)) {
             return NextResponse.json({ error: `Valid status required: ${VALID_ORDER_STATUSES.join(', ')}` }, { status: 400 })
         }
 
@@ -217,14 +232,65 @@ export async function PUT(req) {
         const order = await db.collection('orders').findOne({ _id: oid })
         if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
 
-        const updateData = { status, updatedAt: new Date(), updatedBy: user.userId }
+        const updateData = { updatedAt: new Date(), updatedBy: user.userId }
+        if (status) updateData.status = status;
         if (notes !== undefined) updateData.adminNotes = sanitizeString(String(notes), 1000)
+
+        // Optional Inline Edits (Customer & Address)
+        if (userName !== undefined) updateData.userName = sanitizeString(String(userName), 100);
+        if (userEmail !== undefined) updateData.userEmail = sanitizeString(String(userEmail), 100);
+        if (userPhone !== undefined) updateData.userPhone = sanitizeString(String(userPhone), 20);
+
+        if (deliveryAddress && typeof deliveryAddress === 'object') {
+            updateData.deliveryAddress = {
+                ...order.deliveryAddress,
+                fullName: sanitizeString(deliveryAddress.fullName || order.deliveryAddress?.fullName, 100),
+                email: sanitizeString(deliveryAddress.email || order.deliveryAddress?.email, 100),
+                phone: sanitizeString(deliveryAddress.phone || order.deliveryAddress?.phone, 20),
+                region: sanitizeString(deliveryAddress.region || order.deliveryAddress?.region || 'Bangladesh', 100),
+                shippingZone: sanitizeString(deliveryAddress.shippingZone || order.deliveryAddress?.shippingZone, 50),
+                area: sanitizeString(deliveryAddress.area || order.deliveryAddress?.area, 100),
+                streetAddress: sanitizeString(deliveryAddress.streetAddress || order.deliveryAddress?.streetAddress, 500)
+            };
+        }
+
+        // Calculate stock deductions if transitioning to shipped
+        if (status === 'shipped' && order.status !== 'shipped') {
+            const bulkOps = order.items.map(item => {
+                const qtyToDeduct = parseInt(item.quantity || item.qty, 10);
+                if (!item.productId || isNaN(qtyToDeduct) || qtyToDeduct <= 0) return null;
+
+                let productOid;
+                try { productOid = new ObjectId(item.productId); } catch { return null; }
+
+                return {
+                    updateOne: {
+                        filter: { _id: productOid },
+                        update: {
+                            $inc: {
+                                stockQty: -qtyToDeduct,
+                                'inventory.totalStock': -qtyToDeduct
+                            }
+                        }
+                    }
+                };
+            }).filter(Boolean);
+
+            if (bulkOps.length > 0) {
+                await db.collection('products').bulkWrite(bulkOps);
+            }
+        }
 
         await db.collection('orders').updateOne({ _id: oid }, { $set: updateData })
         const updated = await db.collection('orders').findOne({ _id: oid })
 
-        logAudit('ORDER_STATUS_UPDATED', { userId: user.userId, userEmail: user.email, orderId: id, prevStatus: order.status, newStatus: status }, req)
-        return NextResponse.json({ message: `Order status updated to "${status}"`, order: updated }, { status: 200 })
+        if (status) {
+            logAudit('ORDER_STATUS_UPDATED', { userId: user.userId, userEmail: user.email, orderId: id, prevStatus: order.status, newStatus: status }, req)
+            return NextResponse.json({ success: true, message: `Order status updated to "${status}"`, order: updated }, { status: 200 })
+        } else {
+            logAudit('ORDER_DETAILS_UPDATED', { userId: user.userId, userEmail: user.email, orderId: id }, req)
+            return NextResponse.json({ success: true, message: `Order details updated successfully.`, order: updated }, { status: 200 })
+        }
 
     } catch (err) {
         console.error('❌ PUT /api/orders error:', err)
@@ -257,7 +323,7 @@ export async function DELETE(req) {
         if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
 
         if (user.role !== 'admin') {
-            if (order.userEmail !== user.email) return createAuthError('Access denied', 403)
+            if (order.userEmail !== user.email && order.userPhone !== user.phone) return createAuthError('Access denied', 403)
             if (order.status !== 'pending') return NextResponse.json({ error: 'Only pending orders can be cancelled' }, { status: 400 })
         }
 
@@ -265,12 +331,12 @@ export async function DELETE(req) {
             try { requireRole(user, ['admin']) } catch { return createAuthError('Only admins can permanently delete orders', 403) }
             await db.collection('orders').deleteOne({ _id: oid })
             logAudit('ORDER_HARD_DELETED', { userId: user.userId, userEmail: user.email, orderId: id }, req)
-            return NextResponse.json({ message: 'Order permanently deleted' }, { status: 200 })
+            return NextResponse.json({ success: true, message: 'Order permanently deleted' }, { status: 200 })
         }
 
         await db.collection('orders').updateOne({ _id: oid }, { $set: { status: 'cancelled', cancelledAt: new Date(), cancelledBy: user.userId, updatedAt: new Date() } })
         logAudit('ORDER_CANCELLED', { userId: user.userId, userEmail: user.email, orderId: id }, req)
-        return NextResponse.json({ message: 'Order cancelled successfully' }, { status: 200 })
+        return NextResponse.json({ success: true, message: 'Order cancelled successfully' }, { status: 200 })
 
     } catch (err) {
         console.error('❌ DELETE /api/orders error:', err)

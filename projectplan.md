@@ -782,11 +782,10 @@ Custom webpack loader that adds `data-lov-id` attributes to JSX elements for dev
 Full premium CRUD UI for the following modules:
 - **Dashboard:** Real-time stats for products, orders, revenue, and sliders.
 - **Products:** Create/Edit/Delete products with Cloudinary multi-image upload.
-- **Sliders:** Hero section image management with 1920x800 auto-cropping.
-- **Orders:** List all orders, view details, and update statuses.
-- **Customers:** View registered users and their basic stats.
-- **Analytics:** Revenue growth, order volume, and store performance overview.
-- **Categories:** (Via Product Manager) Dynamic category/subcategory selection.
+- **Sliders:** Hero section image management with 1920x800 auto-cropping and responsive live-previews.
+- **Orders:** Tabular layout, filter by phone number, detailed premium modal view with inline customer editing, status updates (triggers stock deduction automatically), and one-click copy courier info.
+- **Categories:** Dynamic category/subcategory selection.
+- *(Note: Customer Management, Analytics, and Settings specific APIs/UIs were removed in a recent refactor to streamline the admin workflow).*
 
 ### E-commerce Features
 - Shopping cart implementation
@@ -985,9 +984,12 @@ Dynamic category management — no hardcoded slugs or constants.
 - Full CRUD with image replacement support, draggable reordering (`action="reorder"`)
 
 ### Orders API (`/api/orders`)
-- **Total always calculated server-side** — client-provided total is ignored
-- Users can only see/cancel their own orders; admins see all
-- Status workflow: `pending → confirmed → processing → shipped → delivered`
+- **Total always calculated server-side** — client-provided total is ignored.
+- Users can only see/cancel their own orders; admins see all.
+- Collects and validates strictly defined fields: Full Name, Email, Phone Number, Region (default: Bangladesh), Area, Shipping Zone (Inside/Outside Dhaka), street address, and specific product items array.
+- Supports querying by user email or by phone number (for admins).
+- Status workflow: `pending → processing → shipped → delivered → cancelled`
+- **Crucial Action**: Changing status from `pending` to `shipped` automatically deducts product `stockQty` and `totalStock` within the database to prevent overselling.
 
 ### Cart API (`/api/cart`)
 - Cart persisted per user in MongoDB `carts` collection
@@ -1009,6 +1011,5 @@ Dynamic category management — no hardcoded slugs or constants.
 
 ---
 
-*Last Updated: March 3, 2026*  
-*Project Status: Backend Core + Admin Frontend Integrated (v0.2.0)*
-
+*Last Updated: March 6, 2026*  
+*Project Status: Core + Admin UI (Orders Redesign, Slider enhancements, Unified Products) Integrated (v0.3.0)*

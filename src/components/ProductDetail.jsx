@@ -87,42 +87,33 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
       <div className="flex flex-col lg:flex-row gap-10">
         {/* Left — Image Gallery (sticky on desktop) */}
         <div className="lg:w-1/2 lg:sticky lg:top-24 lg:self-start">
-          {/* Main Image with zoom */}
+          {/* Main Image with hover zoom */}
           <div
             ref={imageRef}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
-            className="relative bg-white rounded-2xl overflow-hidden h-[320px] sm:h-[400px] md:h-[500px] cursor-crosshair select-none"
+            className="relative bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-crosshair group w-full lg:max-w-[80%] mx-auto"
           >
             <AnimatePresence mode="wait">
               <motion.div
                 key={selectedImage}
-                initial={{ opacity: 0, x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -40 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.15}
-                onDragEnd={(_, info) => {
-                  if (info.offset.x < -60 && selectedImage < allImages.length - 1) {
-                    setSelectedImage((p) => p + 1);
-                  } else if (info.offset.x > 60 && selectedImage > 0) {
-                    setSelectedImage((p) => p - 1);
-                  }
-                }}
-                className="absolute inset-0 p-6"
-                style={{ ...zoomStyle, transition: "transform 0.3s ease, transform-origin 0.1s ease" }}
+                className="w-full"
               >
-                <Image
-                  src={allImages[selectedImage] || "/placeholder.png"}
-                  alt={product.name}
-                  fill
-                  className="object-contain pointer-events-none"
-                  sizes="50vw"
-                  priority
-                  draggable={false}
-                />
+                <div
+                  className="w-full relative"
+                  style={{ ...zoomStyle, transition: "transform 0.1s ease-out" }}
+                >
+                  <img
+                    src={allImages[selectedImage] || "/placeholder.png"}
+                    alt={product.name}
+                    className="w-full h-auto block pointer-events-none transition-transform duration-300 group-hover:scale-110"
+                    draggable={false}
+                  />
+                </div>
               </motion.div>
             </AnimatePresence>
 
@@ -156,11 +147,10 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
               <button
                 key={i}
                 onClick={() => setSelectedImage(i)}
-                className={`relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 transition-all ${
-                  i === selectedImage
-                    ? "ring-2 ring-[#C4A265] ring-offset-2 shadow-md opacity-100"
-                    : "border-2 border-transparent opacity-50 hover:opacity-100"
-                }`}
+                className={`relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 transition-all ${i === selectedImage
+                  ? "ring-2 ring-[#C4A265] ring-offset-2 shadow-md opacity-100"
+                  : "border-2 border-transparent opacity-50 hover:opacity-100"
+                  }`}
               >
                 <Image src={img} alt={`View ${i + 1}`} fill className="object-cover" sizes="80px" />
               </button>
@@ -298,11 +288,10 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`pb-3 text-sm font-semibold capitalize transition-colors relative ${
-                  activeTab === tab
-                    ? "text-purple-dark"
-                    : "text-text-muted hover:text-text-secondary"
-                }`}
+                className={`pb-3 text-sm font-semibold capitalize transition-colors relative ${activeTab === tab
+                  ? "text-purple-dark"
+                  : "text-text-muted hover:text-text-secondary"
+                  }`}
               >
                 {tab}
                 {activeTab === tab && (
@@ -364,9 +353,8 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
                     {Object.entries(specifications).map(([key, value], i) => (
                       <tr
                         key={key}
-                        className={`border-b border-gray-100 last:border-b-0 ${
-                          i % 2 === 0 ? "bg-gray-50/70" : "bg-white"
-                        }`}
+                        className={`border-b border-gray-100 last:border-b-0 ${i % 2 === 0 ? "bg-gray-50/70" : "bg-white"
+                          }`}
                       >
                         <td className="px-6 py-4 text-sm font-semibold text-text-primary w-2/5 border-r border-gray-100">
                           {key}
