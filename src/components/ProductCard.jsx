@@ -1,4 +1,5 @@
 "use client";
+// Shared product card used across homepage and products page
 
 import Image from "next/image";
 import Link from "next/link";
