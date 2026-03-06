@@ -2,10 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Trash2, Minus, Plus, ArrowLeft, MapPin, Truck, CheckCircle, ChevronDown, X } from "lucide-react";
-import { products } from "@/data/products";
+import { ShoppingCart, Trash2, Minus, Plus, ArrowLeft, MapPin, Truck, CheckCircle, ChevronDown, X, Loader2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
 const dhakaAreas = [
@@ -36,11 +35,14 @@ const SHIPPING_OUTSIDE_DHAKA = 120;
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQty, clearCart } = useCart();
+  const [dbProducts, setDbProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [knownIds, setKnownIds] = useState(new Set());
   const [showCheckout, setShowCheckout] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderedCount, setOrderedCount] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -52,10 +54,35 @@ export default function CartPage() {
   const [streetAddress, setStreetAddress] = useState("");
   const [errors, setErrors] = useState({});
 
+  useEffect(() => {
+    fetch("/api/product?limit=200")
+      .then((r) => r.json())
+      .then((data) => {
+        setDbProducts(data.products || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch products for cart:", err);
+        setLoading(false);
+      });
+  }, []);
+
   const cartItems = cart
     .map((item) => {
-      const product = products.find((p) => p.id === item.id);
-      return product ? { ...product, qty: item.qty } : null;
+      const p = dbProducts.find((prod) => String(prod._id || prod.id) === String(item.id));
+      if (!p) return null;
+      const regularPrice = p.price || 0;
+      const salePrice = (p.discount && p.discount > 0 && p.discount < regularPrice) ? p.discount : regularPrice;
+
+      return {
+        id: String(p._id || p.id),
+        name: p.name,
+        price: salePrice,
+        originalPrice: regularPrice,
+        brand: p.customFields?.brand || p.brand || p.category || "",
+        image: p.images && p.images.length > 0 ? p.images[0].url : (p.image || "/placeholder.png"),
+        qty: item.qty
+      };
     })
     .filter(Boolean);
 
@@ -114,12 +141,51 @@ export default function CartPage() {
     return Object.keys(errs).length === 0;
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!validate()) return;
-    setOrderedCount(selectedItems.length);
-    // Only remove selected items from cart, keep unselected
-    selectedItems.forEach((item) => removeFromCart(item.id));
-    setOrderPlaced(true);
+    setIsSubmitting(true);
+
+    try {
+      const orderPayload = {
+        deliveryAddress: {
+          fullName: name,
+          email: email,
+          phone: phone,
+          region: "Bangladesh",
+          shippingZone: shippingZone,
+          area: shippingZone === "inside" ? area : district,
+          streetAddress: streetAddress
+        },
+        paymentMethod: "cash_on_delivery",
+        items: selectedItems.map(item => ({
+          productId: item.id,
+          name: item.name,
+          brand: item.brand,
+          price: item.price,
+          originalPrice: item.originalPrice,
+          quantity: item.qty,
+          image: item.image
+        }))
+      };
+
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderPayload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to place order");
+
+      setOrderedCount(selectedItems.length);
+      selectedItems.forEach((item) => removeFromCart(item.id));
+      setOrderPlaced(true);
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (orderPlaced) {
@@ -166,7 +232,11 @@ export default function CartPage() {
         </p>
       </div>
 
-      {cartItems.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center items-center py-32">
+          <Loader2 className="animate-spin text-purple-mid" size={40} />
+        </div>
+      ) : cartItems.length === 0 ? (
         <div className="text-center py-20">
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-5">
             <ShoppingCart size={32} className="text-text-muted" />
@@ -381,11 +451,10 @@ export default function CartPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => { setShippingZone("inside"); setDistrict(""); setErrors((p) => ({ ...p, area: undefined, district: undefined })); }}
-                        className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all ${
-                          shippingZone === "inside"
-                            ? "border-purple-mid bg-purple-soft/30"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
+                        className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all ${shippingZone === "inside"
+                          ? "border-purple-mid bg-purple-soft/30"
+                          : "border-gray-200 hover:border-gray-300"
+                          }`}
                       >
                         <Truck size={20} className={shippingZone === "inside" ? "text-purple-mid" : "text-text-muted"} />
                         <span className={`text-sm font-semibold ${shippingZone === "inside" ? "text-purple-dark" : "text-text-primary"}`}>Inside Dhaka</span>
@@ -393,11 +462,10 @@ export default function CartPage() {
                       </button>
                       <button
                         onClick={() => { setShippingZone("outside"); setArea(""); setErrors((p) => ({ ...p, area: undefined, district: undefined })); }}
-                        className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all ${
-                          shippingZone === "outside"
-                            ? "border-purple-mid bg-purple-soft/30"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
+                        className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all ${shippingZone === "outside"
+                          ? "border-purple-mid bg-purple-soft/30"
+                          : "border-gray-200 hover:border-gray-300"
+                          }`}
                       >
                         <Truck size={20} className={shippingZone === "outside" ? "text-purple-mid" : "text-text-muted"} />
                         <span className={`text-sm font-semibold ${shippingZone === "outside" ? "text-purple-dark" : "text-text-primary"}`}>Outside Dhaka</span>
@@ -416,9 +484,8 @@ export default function CartPage() {
                         <select
                           value={area}
                           onChange={(e) => { setArea(e.target.value); setErrors((p) => ({ ...p, area: undefined })); }}
-                          className={`w-full appearance-none border rounded-lg px-4 py-3 text-sm outline-none transition-colors pr-10 ${
-                            errors.area ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-purple-mid"
-                          } ${!area ? "text-text-muted" : "text-text-primary"}`}
+                          className={`w-full appearance-none border rounded-lg px-4 py-3 text-sm outline-none transition-colors pr-10 ${errors.area ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-purple-mid"
+                            } ${!area ? "text-text-muted" : "text-text-primary"}`}
                         >
                           <option value="">Select your area</option>
                           {dhakaAreas.map((a) => (
@@ -438,9 +505,8 @@ export default function CartPage() {
                         <select
                           value={district}
                           onChange={(e) => { setDistrict(e.target.value); setErrors((p) => ({ ...p, district: undefined })); }}
-                          className={`w-full appearance-none border rounded-lg px-4 py-3 text-sm outline-none transition-colors pr-10 ${
-                            errors.district ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-purple-mid"
-                          } ${!district ? "text-text-muted" : "text-text-primary"}`}
+                          className={`w-full appearance-none border rounded-lg px-4 py-3 text-sm outline-none transition-colors pr-10 ${errors.district ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-purple-mid"
+                            } ${!district ? "text-text-muted" : "text-text-primary"}`}
                         >
                           <option value="">Select your district</option>
                           {districts.map((d) => (
@@ -463,9 +529,8 @@ export default function CartPage() {
                       onChange={(e) => { setStreetAddress(e.target.value); setErrors((p) => ({ ...p, streetAddress: undefined })); }}
                       placeholder="House no, Road, Block, Area details..."
                       rows={3}
-                      className={`w-full border rounded-lg px-4 py-3 text-sm outline-none transition-colors resize-none ${
-                        errors.streetAddress ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-purple-mid"
-                      }`}
+                      className={`w-full border rounded-lg px-4 py-3 text-sm outline-none transition-colors resize-none ${errors.streetAddress ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-purple-mid"
+                        }`}
                     />
                     {errors.streetAddress && <p className="text-xs text-red-500 mt-1">{errors.streetAddress}</p>}
                   </div>
@@ -536,11 +601,10 @@ export default function CartPage() {
                   <button
                     onClick={() => setShowCheckout(true)}
                     disabled={selectedItems.length === 0}
-                    className={`w-full text-sm font-semibold py-4 rounded-xl transition-colors mb-3 ${
-                      selectedItems.length === 0
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-purple-dark hover:bg-purple-mid text-white"
-                    }`}
+                    className={`w-full text-sm font-semibold py-4 rounded-xl transition-colors mb-3 ${selectedItems.length === 0
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-purple-dark hover:bg-purple-mid text-white"
+                      }`}
                   >
                     Proceed to Checkout ({selectedItems.length})
                   </button>
@@ -548,10 +612,16 @@ export default function CartPage() {
               ) : (
                 <button
                   onClick={handlePlaceOrder}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-4 rounded-xl transition-colors mb-3 flex items-center justify-center gap-2"
+                  disabled={isSubmitting}
+                  className={`w-full text-white text-sm font-semibold py-4 rounded-xl transition-colors mb-3 flex items-center justify-center gap-2 ${isSubmitting ? "bg-green-700/70 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+                    }`}
                 >
-                  <CheckCircle size={18} />
-                  Confirm Order — Tk {total.toFixed(2)}
+                  {isSubmitting ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <CheckCircle size={18} />
+                  )}
+                  {isSubmitting ? "Placing Order..." : `Confirm Order — Tk ${total.toFixed(2)}`}
                 </button>
               )}
 

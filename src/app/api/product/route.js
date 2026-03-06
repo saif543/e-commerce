@@ -92,7 +92,8 @@ export async function GET(req) {
         let subcategory = sanitizeString(searchParams.get('subcategory') || '', 200)
         let minPrice = searchParams.get('minPrice')
         let maxPrice = searchParams.get('maxPrice')
-        let isFeatured = searchParams.get('isFeatured')
+        let isNewArrival = searchParams.get('isNewArrival')
+        let isLovedProduct = searchParams.get('isLovedProduct')
         let isTrending = searchParams.get('isTrending')
         let statusFilter = searchParams.get('status')
         let page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
@@ -145,7 +146,8 @@ export async function GET(req) {
         }
         if (category) query.category = { $regex: `^${category}$`, $options: 'i' }
         if (subcategory) query.subcategory = { $regex: `^${subcategory}$`, $options: 'i' }
-        if (isFeatured === 'true') query.isFeatured = true
+        if (isNewArrival === 'true') query.isNewArrival = true
+        if (isLovedProduct === 'true') query.isLovedProduct = true
         if (isTrending === 'true') query.isTrending = true
 
         // Admin status filter
@@ -237,7 +239,8 @@ export async function POST(req) {
         const discount = body.discount !== undefined && isValidPrice(Number(body.discount))
             ? parseFloat(body.discount) : 0
 
-        const isFeatured = body.isFeatured === true
+        const isNewArrival = body.isNewArrival === true
+        const isLovedProduct = body.isLovedProduct === true
         const isTrending = body.isTrending === true
         const isActive = body.isActive !== false
         const status = ['active', 'draft', 'archived'].includes(body.status) ? body.status : (isActive ? 'active' : 'draft')
@@ -274,7 +277,7 @@ export async function POST(req) {
             condition, stock, stockQty, inventory, price, originalPrice, discount,
             features, specifications, customFields,
             images: [],
-            isFeatured, isTrending, isActive, status,
+            isNewArrival, isLovedProduct, isTrending, isActive, status,
             createdBy: user.dbUserId || user.userId,
             createdAt: new Date(), updatedAt: new Date(),
         }
@@ -427,7 +430,8 @@ export async function PUT(req) {
         if (body.price !== undefined && isValidPrice(Number(body.price))) updateData.price = parseFloat(body.price)
         if (body.originalPrice !== undefined && isValidPrice(Number(body.originalPrice))) updateData.originalPrice = parseFloat(body.originalPrice)
         if (body.discount !== undefined && isValidPrice(Number(body.discount))) updateData.discount = parseFloat(body.discount)
-        if (body.isFeatured !== undefined) updateData.isFeatured = Boolean(body.isFeatured)
+        if (body.isNewArrival !== undefined) updateData.isNewArrival = Boolean(body.isNewArrival)
+        if (body.isLovedProduct !== undefined) updateData.isLovedProduct = Boolean(body.isLovedProduct)
         if (body.isTrending !== undefined) updateData.isTrending = Boolean(body.isTrending)
         if (body.isActive !== undefined) updateData.isActive = Boolean(body.isActive)
         if (body.status !== undefined && ['active', 'draft', 'archived'].includes(body.status)) {

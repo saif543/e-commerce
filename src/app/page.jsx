@@ -11,11 +11,16 @@ export default function Home() {
       <Navbar />
       <Hero />
       <Categories />
-      <Products />
+      <Products
+        title="Most Loved Products"
+        subtitle="Discover our top picks for a premium lifestyle"
+        apiUrl="/api/product?isLovedProduct=true&limit=10"
+        bg="bg-white"
+      />
       <Products
         title="New Arrivals"
         subtitle="Fresh drops just for you"
-        apiUrl="/api/product?limit=10"
+        apiUrl="/api/product?isNewArrival=true&limit=10"
         bg="bg-offwhite"
       />
       <TrustBadges />

@@ -1,5 +1,5 @@
 // Slider API - Firebase Token Authentication
-// Hero carousel management with enterprise security
+// Hero carousel management — image + link only
 import { NextResponse } from 'next/server'
 import { verifyApiToken, requireRole, createAuthError, checkRateLimit } from '@/lib/auth'
 import { uploadImage, deleteImage } from '@/lib/cloudinary'
@@ -9,11 +9,6 @@ import clientPromise from '@/lib/mongodb'
 // 🔐 SECURITY CONSTANTS
 // ============================================================
 const MAX_IMAGE_SIZE_ADMIN = 100 * 1024 * 1024   // 100MB
-const MAX_IMAGE_SIZE_USER = 5 * 1024 * 1024   // 5MB
-const MAX_REQUEST_BODY_SIZE = 20_000              // 20KB for slider JSON
-const MAX_TITLE_LENGTH = 150
-const MAX_SUBTITLE_LENGTH = 300
-const MAX_CTA_TEXT_LENGTH = 60
 const MAX_CTA_LINK_LENGTH = 500
 
 // IP-based upload tracking
@@ -25,8 +20,6 @@ const UPLOAD_WINDOW_MS = 60 * 60 * 1000
 const writeRequestCounts = new Map()
 const WRITE_RATE_LIMIT = 20
 const WRITE_WINDOW_MS = 15 * 60 * 1000
-
-const ALLOWED_IMAGE_TYPES = null // All image types accepted
 
 // ============================================================
 // 🛡️ SECURITY HELPERS
@@ -64,16 +57,8 @@ function sanitizeString(value, maxLength = 200) {
         .slice(0, maxLength)
 }
 
-function sanitizeHexColor(value) {
-    if (typeof value !== 'string') return null
-    const trimmed = value.trim()
-    // Allow hex colors with optional opacity like #ffffffcc (8-char) or #ffffff (6-char) or #fff (3-char)
-    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(trimmed)) return trimmed
-    return null
-}
-
 function isValidUrl(url) {
-    if (!url) return true // CTA link is optional
+    if (!url) return true // link is optional
     try { new URL(url.startsWith('/') ? `https://example.com${url}` : url); return true }
     catch { return false }
 }
@@ -173,33 +158,15 @@ export async function POST(req) {
                 return NextResponse.json({ error: 'slideData is required' }, { status: 400 })
             }
 
+            const link = sanitizeString(slideData.link || '', MAX_CTA_LINK_LENGTH)
+            if (link && !isValidUrl(link)) {
+                return NextResponse.json({ error: 'Invalid link URL' }, { status: 400 })
+            }
+
             const newSlide = {
                 id: slideData.id || `slide-${Date.now()}`,
-                title: sanitizeString(slideData.title || '', MAX_TITLE_LENGTH) || '--',
-                subtitle: sanitizeString(slideData.subtitle || '', MAX_SUBTITLE_LENGTH) || '--',
-                description: sanitizeString(slideData.description || '', 500),
-                buttonText: sanitizeString(slideData.buttonText || '', MAX_CTA_TEXT_LENGTH),
-                secondButtonText: sanitizeString(slideData.secondButtonText || 'Learn More', MAX_CTA_TEXT_LENGTH),
-                link: sanitizeString(slideData.link || '', MAX_CTA_LINK_LENGTH),
-                secondLink: sanitizeString(slideData.secondLink || '', MAX_CTA_LINK_LENGTH),
-                alignment: ['left', 'center', 'right'].includes(slideData.alignment) ? slideData.alignment : 'left',
-                alt: sanitizeString(slideData.alt || '', 200),
+                link: link || '',
                 isActive: slideData.isActive !== false,
-                // Font sizes
-                titleSize: Number(slideData.titleSize) || 52,
-                subtitleSize: Number(slideData.subtitleSize) || 14,
-                descriptionSize: Number(slideData.descriptionSize) || 16,
-                buttonSize: Number(slideData.buttonSize) || 14,
-                // Colors
-                titleColor: sanitizeHexColor(slideData.titleColor) || '#ffffff',
-                subtitleColor: sanitizeHexColor(slideData.subtitleColor) || '#ffffff',
-                descriptionColor: sanitizeHexColor(slideData.descriptionColor) || '#ffffffcc',
-                buttonBgColor: sanitizeHexColor(slideData.buttonBgColor) || '#2D1854',
-                buttonTextColor: sanitizeHexColor(slideData.buttonTextColor) || '#ffffff',
-                secondButtonBgColor: sanitizeHexColor(slideData.secondButtonBgColor) || '#ffffff26',
-                secondButtonTextColor: sanitizeHexColor(slideData.secondButtonTextColor) || '#ffffff',
-                // Overlay
-                overlayOpacity: Math.min(1, Math.max(0, Number(slideData.overlayOpacity) || 0.65)),
                 image: null,
                 order: 0,
                 createdBy: user.dbUserId || user.userId,
@@ -227,31 +194,14 @@ export async function POST(req) {
 
             const updateData = { updatedAt: new Date() }
             if (slideData) {
-                if (slideData.title !== undefined) updateData.title = sanitizeString(slideData.title, MAX_TITLE_LENGTH) || '--'
-                if (slideData.subtitle !== undefined) updateData.subtitle = sanitizeString(slideData.subtitle, MAX_SUBTITLE_LENGTH) || '--'
-                if (slideData.description !== undefined) updateData.description = sanitizeString(slideData.description, 500)
-                if (slideData.buttonText !== undefined) updateData.buttonText = sanitizeString(slideData.buttonText, MAX_CTA_TEXT_LENGTH)
-                if (slideData.secondButtonText !== undefined) updateData.secondButtonText = sanitizeString(slideData.secondButtonText, MAX_CTA_TEXT_LENGTH)
-                if (slideData.link !== undefined) updateData.link = sanitizeString(slideData.link, MAX_CTA_LINK_LENGTH)
-                if (slideData.secondLink !== undefined) updateData.secondLink = sanitizeString(slideData.secondLink, MAX_CTA_LINK_LENGTH)
-                if (slideData.alignment !== undefined) updateData.alignment = ['left', 'center', 'right'].includes(slideData.alignment) ? slideData.alignment : 'left'
-                if (slideData.alt !== undefined) updateData.alt = sanitizeString(slideData.alt, 200)
+                if (slideData.link !== undefined) {
+                    const link = sanitizeString(slideData.link, MAX_CTA_LINK_LENGTH)
+                    if (link && !isValidUrl(link)) {
+                        return NextResponse.json({ error: 'Invalid link URL' }, { status: 400 })
+                    }
+                    updateData.link = link || ''
+                }
                 if (slideData.isActive !== undefined) updateData.isActive = Boolean(slideData.isActive)
-                // Font sizes
-                if (slideData.titleSize !== undefined) updateData.titleSize = Number(slideData.titleSize)
-                if (slideData.subtitleSize !== undefined) updateData.subtitleSize = Number(slideData.subtitleSize)
-                if (slideData.descriptionSize !== undefined) updateData.descriptionSize = Number(slideData.descriptionSize)
-                if (slideData.buttonSize !== undefined) updateData.buttonSize = Number(slideData.buttonSize)
-                // Colors
-                if (slideData.titleColor !== undefined) updateData.titleColor = sanitizeHexColor(slideData.titleColor) || '#ffffff'
-                if (slideData.subtitleColor !== undefined) updateData.subtitleColor = sanitizeHexColor(slideData.subtitleColor) || '#ffffff'
-                if (slideData.descriptionColor !== undefined) updateData.descriptionColor = sanitizeHexColor(slideData.descriptionColor) || '#ffffffcc'
-                if (slideData.buttonBgColor !== undefined) updateData.buttonBgColor = sanitizeHexColor(slideData.buttonBgColor) || '#2D1854'
-                if (slideData.buttonTextColor !== undefined) updateData.buttonTextColor = sanitizeHexColor(slideData.buttonTextColor) || '#ffffff'
-                if (slideData.secondButtonBgColor !== undefined) updateData.secondButtonBgColor = sanitizeHexColor(slideData.secondButtonBgColor) || '#ffffff26'
-                if (slideData.secondButtonTextColor !== undefined) updateData.secondButtonTextColor = sanitizeHexColor(slideData.secondButtonTextColor) || '#ffffff'
-                // Overlay
-                if (slideData.overlayOpacity !== undefined) updateData.overlayOpacity = Math.min(1, Math.max(0, Number(slideData.overlayOpacity) || 0.65))
             }
 
             await db.collection('sliders').updateOne({ id: slideId }, { $set: updateData })
@@ -290,31 +240,30 @@ export async function PUT(req) {
 
     try {
         const formData = await req.formData()
-        // Accept both 'slideId' (what SliderManager sends) and 'id' (legacy)
         const slideId = formData.get('slideId') || formData.get('id')
         const file = formData.get('image')
 
         if (!slideId) return NextResponse.json({ error: 'slideId is required' }, { status: 400 })
         if (!file) return NextResponse.json({ error: 'image file is required' }, { status: 400 })
 
-        const maxSize = user.role === 'admin' ? MAX_IMAGE_SIZE_ADMIN : MAX_IMAGE_SIZE_USER
-        if (file.size > maxSize) {
-            return NextResponse.json({ error: `Image too large (max ${user.role === 'admin' ? '100MB' : '5MB'})` }, { status: 400 })
+        if (file.size > MAX_IMAGE_SIZE_ADMIN) {
+            return NextResponse.json({ error: 'Image too large (max 100MB)' }, { status: 400 })
         }
 
         const client = await clientPromise
         const db = client.db('ECOM')
 
-        // Look up by string 'id' field (not MongoDB _id)
         const slider = await db.collection('sliders').findOne({ id: slideId })
         if (!slider) return NextResponse.json({ error: 'Slide not found' }, { status: 404 })
 
         // Delete old Cloudinary image if exists
-        if (slider.image?.publicId) {
+        if (slider.imagePublicId) {
+            await deleteImage(slider.imagePublicId)
+        } else if (slider.image?.publicId) {
             await deleteImage(slider.image.publicId)
         }
 
-        // Upload new image (all types accepted)
+        // Upload new image
         const buffer = Buffer.from(await file.arrayBuffer())
         const uploaded = await uploadImage(buffer, {
             folder: 'ecom/sliders',
@@ -369,7 +318,6 @@ export async function DELETE(req) {
         const client = await clientPromise
         const db = client.db('ECOM')
 
-        // Look up by string 'id' field
         const slider = await db.collection('sliders').findOne({ id: slideId })
         if (!slider) return NextResponse.json({ error: 'Slide not found' }, { status: 404 })
 
@@ -389,7 +337,7 @@ export async function DELETE(req) {
 
         await db.collection('sliders').deleteOne({ id: slideId })
 
-        logAudit('SLIDER_DELETED', { userId: user.userId, slideId, title: slider.title }, req)
+        logAudit('SLIDER_DELETED', { userId: user.userId, slideId }, req)
         return NextResponse.json({ success: true, message: 'Slide deleted successfully' })
 
     } catch (err) {

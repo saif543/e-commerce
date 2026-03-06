@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Swal from 'sweetalert2'
 import {
@@ -14,6 +14,8 @@ import {
     Check,
     X,
     Layers,
+    Upload,
+    Image as ImageIcon,
 } from 'lucide-react'
 
 const MySwal = Swal
@@ -25,7 +27,10 @@ export default function CategoryManager({ getToken }) {
 
     // New category input
     const [newCatName, setNewCatName] = useState('')
+    const [newCatImage, setNewCatImage] = useState(null)       // File
+    const [newCatPreview, setNewCatPreview] = useState(null)   // Object URL
     const [addingCat, setAddingCat] = useState(false)
+    const newCatFileRef = useRef(null)
 
     // New subcategory input (per category)
     const [newSubInputs, setNewSubInputs] = useState({}) // { catId: '' }
@@ -36,6 +41,10 @@ export default function CategoryManager({ getToken }) {
     const [renamingCatValue, setRenamingCatValue] = useState('')
     const [renamingSubId, setRenamingSubId] = useState(null) // "catId::subId"
     const [renamingSubValue, setRenamingSubValue] = useState('')
+
+    // Image update per category
+    const [updatingImageFor, setUpdatingImageFor] = useState(null) // catId
+    const imgUpdateRef = useRef(null)
 
     useEffect(() => {
         fetchCategories()
@@ -58,21 +67,45 @@ export default function CategoryManager({ getToken }) {
         setExpandedCats(prev => ({ ...prev, [catId]: !prev[catId] }))
     }
 
-    // ── Create Category ──
+    // ── Handle new category image selection ──
+    const handleNewCatImageSelect = (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+        if (!allowed.includes(file.type)) {
+            MySwal.fire({ icon: 'error', title: 'Invalid File', text: 'Only JPEG, PNG, WebP allowed', confirmButtonColor: '#FF6B35' })
+            return
+        }
+        setNewCatImage(file)
+        setNewCatPreview(URL.createObjectURL(file))
+    }
+
+    // ── Create Category (FormData with required image) ──
     const handleAddCategory = async () => {
         const name = newCatName.trim()
         if (!name) return
+        if (!newCatImage) {
+            MySwal.fire({ icon: 'warning', title: 'Image Required', text: 'Please select an image for this category', confirmButtonColor: '#FF6B35' })
+            return
+        }
         setAddingCat(true)
         try {
             const token = await getToken()
+            const fd = new FormData()
+            fd.append('name', name)
+            fd.append('image', newCatImage)
+
             const res = await fetch('/api/category', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ name }),
+                headers: { Authorization: `Bearer ${token}` },
+                body: fd,
             })
             const data = await res.json()
             if (!res.ok) throw new Error(data.error || 'Failed to create category')
             setNewCatName('')
+            setNewCatImage(null)
+            setNewCatPreview(null)
+            if (newCatFileRef.current) newCatFileRef.current.value = ''
             // Auto-expand newly created category
             if (data.category) {
                 setExpandedCats(prev => ({ ...prev, [data.category._id]: true }))
@@ -82,6 +115,37 @@ export default function CategoryManager({ getToken }) {
             MySwal.fire({ icon: 'error', title: 'Error', text: err.message, confirmButtonColor: '#FF6B35' })
         } finally {
             setAddingCat(false)
+        }
+    }
+
+    // ── Update category image ──
+    const handleUpdateCategoryImage = async (cat, file) => {
+        if (!file) return
+        const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+        if (!allowed.includes(file.type)) {
+            MySwal.fire({ icon: 'error', title: 'Invalid File', text: 'Only JPEG, PNG, WebP allowed', confirmButtonColor: '#FF6B35' })
+            return
+        }
+        setUpdatingImageFor(cat._id)
+        try {
+            const token = await getToken()
+            const fd = new FormData()
+            fd.append('id', cat._id)
+            fd.append('image', file)
+
+            const res = await fetch('/api/category', {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}` },
+                body: fd,
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Failed to update image')
+            MySwal.fire({ icon: 'success', title: 'Image updated!', timer: 1200, showConfirmButton: false })
+            fetchCategories()
+        } catch (err) {
+            MySwal.fire({ icon: 'error', title: 'Error', text: err.message, confirmButtonColor: '#FF6B35' })
+        } finally {
+            setUpdatingImageFor(null)
         }
     }
 
@@ -169,7 +233,6 @@ export default function CategoryManager({ getToken }) {
 
         try {
             const token = await getToken()
-            // Use force=true so it deletes even if products still reference it
             const res = await fetch(`/api/category?id=${cat._id}&force=true`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` },
@@ -243,6 +306,52 @@ export default function CategoryManager({ getToken }) {
             {/* Add Category Row */}
             <div className="bg-white rounded-xl border border-gray-200 p-4">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">Add New Category</label>
+
+                {/* Image upload area */}
+                <div className="mb-3">
+                    <div
+                        onClick={() => newCatFileRef.current?.click()}
+                        className={`flex items-center gap-3 p-3 rounded-lg border-2 border-dashed cursor-pointer transition-colors
+                            ${newCatPreview ? 'border-[#FF6B35] bg-orange-50' : 'border-gray-300 hover:border-[#FF6B35] hover:bg-orange-50'}`}
+                    >
+                        {newCatPreview ? (
+                            <>
+                                <img src={newCatPreview} alt="Preview" className="w-14 h-14 object-cover rounded-lg flex-shrink-0 shadow" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-[#FF6B35] truncate">{newCatImage?.name}</p>
+                                    <p className="text-xs text-gray-400">Click to change image</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setNewCatImage(null); setNewCatPreview(null); if (newCatFileRef.current) newCatFileRef.current.value = '' }}
+                                    className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <ImageIcon size={24} className="text-gray-400" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Upload category image <span className="text-red-500">*</span></p>
+                                    <p className="text-xs text-gray-400">JPEG, PNG, WebP — required</p>
+                                </div>
+                                <Upload size={18} className="text-gray-400 ml-auto flex-shrink-0" />
+                            </>
+                        )}
+                    </div>
+                    <input
+                        ref={newCatFileRef}
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        onChange={handleNewCatImageSelect}
+                        className="hidden"
+                    />
+                </div>
+
+                {/* Name + Add button */}
                 <div className="flex gap-2">
                     <input
                         type="text"
@@ -254,7 +363,7 @@ export default function CategoryManager({ getToken }) {
                     />
                     <button
                         onClick={handleAddCategory}
-                        disabled={addingCat || !newCatName.trim()}
+                        disabled={addingCat || !newCatName.trim() || !newCatImage}
                         className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#FF6B35] to-[#E85A2A] text-white rounded-lg text-sm font-medium hover:from-[#E85A2A] hover:to-[#D94A1A] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Plus size={16} />
@@ -276,6 +385,7 @@ export default function CategoryManager({ getToken }) {
                         const isExpanded = expandedCats[cat._id]
                         const isRenamingThis = renamingCatId === cat._id
                         const subCount = cat.subcategories?.length || 0
+                        const isUpdatingImg = updatingImageFor === cat._id
 
                         return (
                             <motion.div
@@ -295,9 +405,32 @@ export default function CategoryManager({ getToken }) {
                                             : <ChevronRight size={18} />}
                                     </button>
 
-                                    {isExpanded
-                                        ? <FolderOpen size={18} className="text-[#FF6B35] flex-shrink-0" />
-                                        : <Folder size={18} className="text-gray-400 flex-shrink-0" />}
+                                    {/* Category thumbnail */}
+                                    <div className="relative flex-shrink-0">
+                                        {cat.image ? (
+                                            <img
+                                                src={cat.image}
+                                                alt={cat.name}
+                                                className="w-10 h-10 object-cover rounded-lg border border-gray-200"
+                                            />
+                                        ) : (
+                                            isExpanded
+                                                ? <FolderOpen size={18} className="text-[#FF6B35]" />
+                                                : <Folder size={18} className="text-gray-400" />
+                                        )}
+                                        {/* Hidden file input for image update */}
+                                        <input
+                                            ref={imgUpdateRef}
+                                            type="file"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0]
+                                                if (file) handleUpdateCategoryImage(cat, file)
+                                                e.target.value = ''
+                                            }}
+                                        />
+                                    </div>
 
                                     {/* Name / Rename input */}
                                     {isRenamingThis ? (
@@ -322,6 +455,29 @@ export default function CategoryManager({ getToken }) {
 
                                     {/* Actions */}
                                     <div className="flex items-center gap-1">
+                                        {/* Update image button */}
+                                        <button
+                                            onClick={() => {
+                                                // Create a fresh hidden file input click for this specific cat
+                                                const inp = document.createElement('input')
+                                                inp.type = 'file'
+                                                inp.accept = 'image/jpeg,image/jpg,image/png,image/webp'
+                                                inp.onchange = (e) => {
+                                                    const file = e.target.files?.[0]
+                                                    if (file) handleUpdateCategoryImage(cat, file)
+                                                }
+                                                inp.click()
+                                            }}
+                                            disabled={isUpdatingImg}
+                                            className="p-1.5 text-orange-500 hover:bg-orange-50 rounded transition-colors disabled:opacity-40"
+                                            title="Update category image"
+                                        >
+                                            {isUpdatingImg
+                                                ? <div className="w-3.5 h-3.5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+                                                : <ImageIcon size={15} />
+                                            }
+                                        </button>
+
                                         {isRenamingThis ? (
                                             <>
                                                 <button onClick={() => handleRenameCategory(cat)} className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors">
@@ -416,7 +572,6 @@ export default function CategoryManager({ getToken }) {
                                                                     </button>
                                                                 </div>
                                                             </div>
-
                                                         )
                                                     })
                                                 )}

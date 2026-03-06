@@ -61,7 +61,8 @@ export default function ProductManager({ getToken }) {
         },
         images: [],
         status: 'draft',
-        isFeatured: false,
+        isNewArrival: false,
+        isLovedProduct: false,
         isTrending: false,
         features: [],
         specifications: {},
@@ -202,7 +203,8 @@ export default function ProductManager({ getToken }) {
             inventory: { totalStock: 0, lowStockThreshold: 10, trackInventory: true },
             images: [],
             status: 'draft',
-            isFeatured: false,
+            isNewArrival: false,
+            isLovedProduct: false,
             isTrending: false,
             features: [],
             specifications: {},
@@ -248,7 +250,8 @@ export default function ProductManager({ getToken }) {
             },
             images: product.images || [],
             status: product.status || (product.isActive ? 'active' : 'draft'),
-            isFeatured: product.isFeatured || false,
+            isNewArrival: product.isNewArrival || false,
+            isLovedProduct: product.isLovedProduct || false,
             isTrending: product.isTrending || false,
             features: product.features || [],
             specifications: product.specifications || {},
@@ -398,7 +401,8 @@ export default function ProductManager({ getToken }) {
                 inventory: { ...formData.inventory, totalStock: stockQty },
                 isActive: formData.status === 'active',
                 status: formData.status,
-                isFeatured: formData.isFeatured,
+                isNewArrival: formData.isNewArrival,
+                isLovedProduct: formData.isLovedProduct,
                 isTrending: formData.isTrending,
                 features: finalFeatures,
                 specifications: builtSpecs,
@@ -1194,11 +1198,20 @@ export default function ProductManager({ getToken }) {
                                             <label className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200 cursor-pointer">
                                                 <input
                                                     type="checkbox"
-                                                    checked={formData.isFeatured}
-                                                    onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                                                    checked={formData.isNewArrival}
+                                                    onChange={(e) => setFormData({ ...formData, isNewArrival: e.target.checked })}
                                                     className="w-5 h-5 rounded"
                                                 />
-                                                <span className="text-sm font-medium text-gray-700">Featured Product</span>
+                                                <span className="text-sm font-medium text-gray-700">New Arrival</span>
+                                            </label>
+                                            <label className="flex items-center gap-3 p-3 bg-pink-50 rounded-lg border border-pink-200 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.isLovedProduct}
+                                                    onChange={(e) => setFormData({ ...formData, isLovedProduct: e.target.checked })}
+                                                    className="w-5 h-5 rounded"
+                                                />
+                                                <span className="text-sm font-medium text-gray-700">Loved Product</span>
                                             </label>
                                             <label className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200 cursor-pointer">
                                                 <input

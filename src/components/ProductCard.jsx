@@ -38,7 +38,7 @@ export default function ProductCard({ product, index = 0 }) {
     >
       <Link href={`/product/${productId}`} className="flex-1 flex flex-col">
         {/* Image */}
-        <div className="relative h-32 min-[480px]:h-40 min-[768px]:h-48 min-[1024px]:h-44 min-[1280px]:h-48 bg-offwhite overflow-hidden">
+        <div className="relative h-36 sm:h-44 lg:h-56 bg-offwhite overflow-hidden">
           {product.badge && (
             <span className="absolute top-1.5 left-1.5 min-[480px]:top-2 min-[480px]:left-2 min-[768px]:top-3 min-[768px]:left-3 bg-purple-soft text-purple-mid text-[8px] min-[480px]:text-[9px] min-[768px]:text-[10px] font-semibold px-1.5 min-[480px]:px-2 min-[768px]:px-3 py-0.5 min-[768px]:py-1 rounded-full z-10">
               {product.badge}
@@ -53,7 +53,7 @@ export default function ProductCard({ product, index = 0 }) {
             src={imageUrl}
             alt={product.name}
             fill
-            className="object-contain group-hover:scale-105 transition-transform duration-500"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
           />
         </div>
