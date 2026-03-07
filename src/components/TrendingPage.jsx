@@ -156,62 +156,6 @@ export default function TrendingPage() {
         </div>
       </FilterSection>
 
-      <FilterSection title="Brands" isOpen={openFilter === "brands"} onToggle={() => toggleFilter("brands")}>
-        <div className="space-y-2.5 max-h-52 overflow-y-auto">
-          {allBrands.map((brand) => (
-            <label key={brand} className="flex items-center gap-3 cursor-pointer group">
-              <div
-                className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedBrands.includes(brand) ? "bg-purple-mid border-purple-mid" : "border-gray-300 group-hover:border-purple-light"
-                  }`}
-                onClick={() => toggleItem(selectedBrands, setSelectedBrands, brand)}
-              >
-                {selectedBrands.includes(brand) && (
-                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                )}
-              </div>
-              <span className={`text-sm transition-colors ${selectedBrands.includes(brand) ? "text-text-primary font-medium" : "text-text-secondary group-hover:text-text-primary"}`} onClick={() => toggleItem(selectedBrands, setSelectedBrands, brand)}>
-                {brand}
-              </span>
-            </label>
-          ))}
-        </div>
-      </FilterSection>
-
-      <FilterSection title="Discount" isOpen={openFilter === "discount"} onToggle={() => toggleFilter("discount")}>
-        <div className="space-y-2">
-          {[40, 30, 20, 10].map((d) => (
-            <button
-              key={d}
-              onClick={() => setSelectedDiscount(selectedDiscount === d ? null : d)}
-              className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-lg text-sm transition-colors ${selectedDiscount === d ? "bg-purple-soft text-purple-dark font-medium" : "text-text-secondary hover:bg-gray-50"
-                }`}
-            >
-              {d}% or more
-            </button>
-          ))}
-        </div>
-      </FilterSection>
-
-      <FilterSection title="Availability" isOpen={openFilter === "availability"} onToggle={() => toggleFilter("availability")}>
-        <div className="space-y-2.5">
-          {availabilityOptions.map((opt) => (
-            <label key={opt} className="flex items-center gap-3 cursor-pointer group">
-              <div
-                className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedAvailability.includes(opt) ? "bg-purple-mid border-purple-mid" : "border-gray-300 group-hover:border-purple-light"
-                  }`}
-                onClick={() => toggleItem(selectedAvailability, setSelectedAvailability, opt)}
-              >
-                {selectedAvailability.includes(opt) && (
-                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                )}
-              </div>
-              <span className={`text-sm transition-colors ${selectedAvailability.includes(opt) ? "text-text-primary font-medium" : "text-text-secondary group-hover:text-text-primary"}`} onClick={() => toggleItem(selectedAvailability, setSelectedAvailability, opt)}>
-                {opt}
-              </span>
-            </label>
-          ))}
-        </div>
-      </FilterSection>
     </>
   );
 
