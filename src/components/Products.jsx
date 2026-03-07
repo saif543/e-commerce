@@ -15,9 +15,20 @@ import ProductCard from "./ProductCard";
   2xl  1280+    → 5 cols
 */
 
-export default function Products({ title = "Most Loved Products", subtitle = "Discover our top picks for a premium lifestyle", apiUrl = "/api/product?limit=12", bg = "bg-cream/50", bannerImage = null, bannerGradient = null }) {
+export default function Products({
+  title = "Most Loved Products",
+  subtitle = "Discover our top picks for a premium lifestyle",
+  apiUrl = "/api/product?limit=12",
+  bg = "bg-cream/50",
+  // section: the key used to fetch the admin-controlled banner image
+  // e.g. "most-loved" | "new-arrivals"
+  section = null,
+  // fallback gradient if no banner image is set from admin
+  bannerGradient = null,
+}) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [bannerImage, setBannerImage] = useState(null);
 
   useEffect(() => {
     fetch(apiUrl)
@@ -27,16 +38,37 @@ export default function Products({ title = "Most Loved Products", subtitle = "Di
       .finally(() => setLoading(false));
   }, [apiUrl]);
 
+  // Fetch section banner image from admin-controlled API
+  useEffect(() => {
+    if (!section) return;
+    fetch(`/api/section-banner?section=${encodeURIComponent(section)}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((data) => {
+        if (data.banner?.image) setBannerImage(data.banner.image);
+      })
+      .catch(() => {
+        // Silently fail — fallback to bannerGradient
+      });
+  }, [section]);
+
+  const hasBanner = bannerImage || bannerGradient;
+
   return (
     <section className={bg}>
       {/* Thin Banner */}
-      {(bannerImage || bannerGradient) && (
+      {hasBanner && (
         <div className="max-w-[1440px] mx-auto px-2 min-[480px]:px-4 min-[640px]:px-5 min-[768px]:px-6 pt-8 min-[768px]:pt-16">
           <div
             className="relative w-full h-24 min-[480px]:h-28 min-[640px]:h-32 min-[768px]:h-36 min-[1024px]:h-40 rounded-xl min-[480px]:rounded-2xl overflow-hidden"
-            style={bannerGradient && !bannerImage ? { background: bannerGradient } : undefined}
+            style={!bannerImage && bannerGradient ? { background: bannerGradient } : undefined}
           >
-            {bannerImage && <img src={bannerImage} alt="" className="w-full h-full object-cover" />}
+            {bannerImage && (
+              <img
+                src={bannerImage}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            )}
           </div>
         </div>
       )}

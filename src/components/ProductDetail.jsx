@@ -248,7 +248,7 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
                   <Zap size={14} /> Buy Now
                 </button>
                 <a
-                  href="https://m.me/61579377832787"
+                  href={`https://www.messenger.com/t/61579377832787?ref=${encodeURIComponent(`Product:${product.name}|Price:${product.price}|Qty:${qty}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 relative overflow-hidden h-[42px] rounded-lg text-xs tracking-widest uppercase font-bold flex items-center justify-center gap-2 transition-all active:translate-y-[1px] active:shadow-[0_0px_1px_rgba(0,0,0,0.3),inset_0_1px_3px_rgba(0,0,0,0.2)] shadow-[0_3px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.25)] border border-[rgba(255,255,255,0.1)]"
@@ -256,7 +256,7 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
                 >
                   <span className="absolute inset-x-0 top-0 h-[45%] bg-gradient-to-b from-white/15 to-transparent rounded-t pointer-events-none"></span>
                   <svg viewBox="0 0 24 24" fill="white" className="relative w-4 h-4">
-                    <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.2 5.42 3.15 7.2.16.15.26.36.27.58l.05 1.82c.02.56.6.93 1.11.7l2.04-.9c.17-.08.36-.1.55-.06.88.24 1.82.37 2.83.37 5.64 0 10-4.13 10-9.7S17.64 2 12 2zm6.28 7.58-3.07 4.87c-.49.78-1.54.98-2.29.43l-2.44-1.83a.75.75 0 00-.9 0l-3.3 2.5c-.44.33-1.01-.17-.72-.64l3.07-4.87c.49-.78 1.54-.98 2.29-.43l2.44 1.83a.75.75 0 00.9 0l3.3-2.5c.44-.33 1.01.17.72.64z"/>
+                    <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.2 5.42 3.15 7.2.16.15.26.36.27.58l.05 1.82c.02.56.6.93 1.11.7l2.04-.9c.17-.08.36-.1.55-.06.88.24 1.82.37 2.83.37 5.64 0 10-4.13 10-9.7S17.64 2 12 2zm6.28 7.58-3.07 4.87c-.49.78-1.54.98-2.29.43l-2.44-1.83a.75.75 0 00-.9 0l-3.3 2.5c-.44.33-1.01-.17-.72-.64l3.07-4.87c.49-.78 1.54-.98 2.29-.43l2.44 1.83a.75.75 0 00.9 0l3.3-2.5c.44-.33 1.01.17.72.64z" />
                   </svg>
                   <span className="relative text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]">Messenger</span>
                 </a>

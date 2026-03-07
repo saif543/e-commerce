@@ -11,13 +11,16 @@ import {
     LogOut,
     Image as ImageIcon,
     Bell,
-    Home
+    Home,
+    Layers
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import AdminGuard from '@/components/admin/AdminGuard'
 import SliderManager from '@/components/admin/SliderManager'
 import ProductManager from '@/components/admin/ProductManager'
 import OrderManager from '@/components/admin/OrderManager'
+import SectionBannerManager from '@/components/admin/SectionBannerManager'
+import CategoryBannerManager from '@/components/admin/CategoryBannerManager'
 
 function AdminDashboard() {
     const router = useRouter()
@@ -113,6 +116,7 @@ function AdminDashboard() {
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'products', label: 'Products', icon: Package },
         { id: 'sliders', label: 'Sliders', icon: ImageIcon },
+        { id: 'banners', label: 'Banners', icon: Layers },
         { id: 'orders', label: 'Orders', icon: ShoppingCart },
     ]
 
@@ -308,6 +312,16 @@ function AdminDashboard() {
                     {/* Products Tab */}
                     {activeTab === 'products' && (
                         <ProductManager getToken={getToken} />
+                    )}
+
+                    {/* Banners Tab */}
+                    {activeTab === 'banners' && (
+                        <div className="space-y-10">
+                            <SectionBannerManager getToken={getToken} />
+                            <div className="border-t border-gray-200 pt-10">
+                                <CategoryBannerManager getToken={getToken} />
+                            </div>
+                        </div>
                     )}
 
                     {/* Orders Tab */}
