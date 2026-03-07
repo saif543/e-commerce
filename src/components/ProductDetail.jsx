@@ -16,10 +16,12 @@ import {
   Zap,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import ProductCard from "./ProductCard";
 
 function formatPrice(n) {
   return Math.round(n).toLocaleString("en-IN");
 }
+
 export default function ProductDetail({ product, relatedProducts = [] }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [qty, setQty] = useState(1);
@@ -76,390 +78,258 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
     : [];
 
   return (
-    <section className="max-w-[1440px] mx-auto px-4 sm:px-6 py-8">
-      {/* Back */}
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-purple-mid transition-colors mb-8"
-      >
-        <ArrowLeft size={16} />
-        Back to Shop
-      </Link>
-
-      <div className="flex flex-col lg:flex-row gap-10">
-        {/* Left — Image Gallery (sticky on desktop) */}
-        <div className="lg:w-1/2 lg:sticky lg:top-24 lg:self-start">
-          {/* Main Image with hover zoom */}
-          <div
-            ref={imageRef}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            className="relative bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-crosshair group w-full lg:max-w-[80%] mx-auto"
-          >
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={selectedImage}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="w-full"
-              >
-                <div
-                  className="w-full relative"
-                  style={{ ...zoomStyle, transition: "transform 0.1s ease-out" }}
-                >
-                  <img
-                    src={allImages[selectedImage] || "/placeholder.png"}
-                    alt={product.name}
-                    className="w-full h-auto block pointer-events-none transition-transform duration-300 group-hover:scale-110"
-                    draggable={false}
-                  />
-                </div>
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Arrows */}
-            {selectedImage > 0 && (
-              <button
-                onClick={() => setSelectedImage((p) => p - 1)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-colors z-10"
-              >
-                <ChevronLeft size={18} />
-              </button>
-            )}
-            {selectedImage < allImages.length - 1 && (
-              <button
-                onClick={() => setSelectedImage((p) => p + 1)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-colors z-10"
-              >
-                <ChevronRight size={18} />
-              </button>
-            )}
-
-            {/* Image counter */}
-            <span className="absolute bottom-4 right-4 bg-black/40 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm z-10">
-              {selectedImage + 1} / {allImages.length}
-            </span>
-          </div>
-
-          {/* Thumbnails */}
-          <div className="flex gap-3 mt-4 overflow-x-auto p-1.5">
-            {allImages.map((img, i) => (
-              <button
-                key={i}
-                onClick={() => setSelectedImage(i)}
-                className={`relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 transition-all ${i === selectedImage
-                  ? "ring-2 ring-[#C4A265] ring-offset-2 shadow-md opacity-100"
-                  : "border-2 border-transparent opacity-50 hover:opacity-100"
-                  }`}
-              >
-                <Image src={img} alt={`View ${i + 1}`} fill className="object-cover" sizes="80px" />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Right — Product Info */}
-        <div className="lg:w-1/2">
-          {/* Badge */}
-          {product.badge && (
-            <span className="inline-block bg-purple-soft text-purple-mid text-[11px] font-semibold px-3 py-1 rounded-full mb-4">
-              {product.badge}
-            </span>
+    <section className="bg-white min-h-screen pb-16 font-sans">
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 py-8">
+        {/* Breadcrumb */}
+        {/* <div className="flex items-center gap-2 text-[11px] font-bold text-gray-800 mb-6 uppercase tracking-wider">
+          <Link href="/" className="hover:text-black hover:underline cursor-pointer"><span className="text-gray-900">Home</span></Link>
+          <span className="text-gray-400">/</span>
+          {product.category && (
+            <>
+              <span className="text-gray-900">{product.category}</span>
+              <span className="text-gray-400">/</span>
+            </>
           )}
+          {brandName && (
+            <>
+              <span className="text-gray-900">{brandName}</span>
+              <span className="text-gray-400">/</span>
+            </>
+          )}
+          <span className="text-gray-500">{product.name}</span>
+        </div> */}
 
-          {/* Brand */}
-          <p className="text-text-muted text-[11px] font-semibold uppercase tracking-widest mb-2">
-            {brandName || product.brand}
-          </p>
+        <div className="flex flex-col lg:flex-row gap-8 xl:gap-12">
+          {/* Left Column - Gallery */}
+          <div className="lg:w-[50%] flex flex-col-reverse lg:flex-row gap-4 lg:self-start">
+            {/* Thumbnails (Vertical on desktop) */}
+            <div className="flex lg:flex-col gap-3 lg:w-[72px] flex-shrink-0 overflow-x-auto lg:overflow-visible p-1">
+              {allImages.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedImage(i)}
+                  className={`relative w-[70px] h-[85px] rounded-md overflow-hidden border p-1 transition-all flex-shrink-0 bg-white ${i === selectedImage ? 'border-[#c4a265] shadow-sm ring-1 ring-[#c4a265]' : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                >
+                  <Image src={img} alt={`Thumb ${i}`} fill className="object-contain p-1" sizes="70px" />
+                </button>
+              ))}
+            </div>
 
-          {/* Name */}
-          <h1 className="text-3xl md:text-4xl font-semibold text-text-primary mb-4 leading-tight">
-            {product.name}
-          </h1>
+            {/* Main Image */}
+            <div
+              className="flex-1 relative rounded-lg border border-gray-100 flex items-center justify-center min-h-[440px] lg:min-h-[530px] cursor-crosshair overflow-hidden group bg-white shadow-sm w-full"
+              ref={imageRef}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+            >
+              {/* Badge if exists */}
+              {product.badge && (
+                <div className="absolute top-4 left-4 bg-purple-soft text-purple-mid text-[11px] font-semibold px-3 py-1 rounded-full z-10 opacity-90">
+                  {product.badge}
+                </div>
+              )}
+              {discountPct > 0 && !product.badge && (
+                <div className="absolute top-4 left-4 bg-[#d18e54] text-white text-[13px] font-bold px-2 py-0.5 rounded shadow-sm z-10 opacity-90">
+                  {discountPct}%
+                </div>
+              )}
 
-          {/* Price Box */}
-          <div className="bg-purple-soft/50 rounded-xl px-5 py-4 mb-5">
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-semibold text-text-primary">Tk {formatPrice(salePrice)}</span>
-              {savedAmount > 0 && (
-                <span className="text-base text-text-muted line-through">Tk {formatPrice(regularPrice)}</span>
+              <div className="absolute inset-0 max-w-full">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={selectedImage}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="w-full h-full"
+                  >
+                    <div
+                      className="w-full h-full relative"
+                      style={{ ...zoomStyle, transition: "transform 0.1s ease-out" }}
+                    >
+                      <Image
+                        src={allImages[selectedImage] || "/placeholder.png"}
+                        alt={product.name}
+                        fill
+                        className="object-cover pointer-events-none"
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        priority
+                      />
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Product Info */}
+          <div className="lg:w-[50%] flex flex-col pt-1">
+            <div className="mb-6 flex items-center">
+              {/* <div className="text-[13px] font-bold text-gray-500 tracking-wide flex items-center gap-2">
+                Brand : <span className="text-[#0066cc] border border-blue-200/60 bg-blue-50/30 px-2 py-0.5 rounded text-[11px] font-bold">{brandName || "Unknown"}</span>
+              </div> */}
+            </div>
+
+            {/* Title & Price Box */}
+            <div className="bg-[#fcfaf8] rounded-xl px-6 py-6 mb-6 shadow-sm border border-gray-100/50">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 border-b border-gray-200 pb-5 gap-4">
+                <div className="flex-1 pr-4">
+                  <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 leading-tight">{product.name}</h1>
+                </div>
+                <div className="text-left sm:text-right flex-shrink-0 mt-1">
+                  <div className="text-xl font-medium text-[#c45a27]">Tk {formatPrice(salePrice)}</div>
+                  {savedAmount > 0 && (
+                    <div className="text-[13px] text-gray-400 line-through mt-0.5 font-medium">Tk {formatPrice(regularPrice)}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Stock Status indicator */}
+              <div className="flex items-center gap-2 mb-6">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                </span>
+                <span className="text-sm font-medium text-green-600 tracking-wide">In Stock</span>
+              </div>
+
+              {/* Short Description */}
+              <div className="text-[13px] text-gray-600 leading-relaxed mb-4">
+                {shortDescription || product.description}
+              </div>
+
+              {/* Features list */}
+              {features.length > 0 && (
+                <div className="flex flex-col gap-2 text-[13px] text-gray-600 mt-4">
+                  {features.slice(0, 5).map((feat, i) => (
+                    <div key={i} className="flex gap-2 leading-relaxed">
+                      <CheckCircle2 size={16} className="text-[#c4a265] flex-shrink-0 mt-0.5" />
+                      <span className="flex-1">{feat}</span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-            {savedAmount > 0 && (
-              <div className="flex items-center gap-3 mt-2">
-                <span className="text-sm text-green-600 font-semibold">
-                  Save Tk {formatPrice(savedAmount)}
-                </span>
-                <span className="bg-red-500 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                  -{discountPct}%
-                </span>
+
+            {/* Add To Cart & Qty Row */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 mt-auto">
+              {/* Qty Counter */}
+              <div className="flex items-center bg-white border border-gray-300 rounded overflow-hidden h-[46px] w-full sm:w-[110px] flex-shrink-0 shadow-sm">
+                <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-1/3 sm:w-[38px] h-full flex items-center justify-center text-gray-500 hover:text-black hover:bg-gray-50 transition-colors">
+                  <Minus size={15} strokeWidth={2.5} />
+                </button>
+                <span className="w-1/3 sm:flex-1 text-center text-sm font-bold text-gray-800">{qty}</span>
+                <button onClick={() => setQty(q => q + 1)} className="w-1/3 sm:w-[38px] h-full flex items-center justify-center text-gray-500 hover:text-black hover:bg-gray-50 transition-colors">
+                  <Plus size={15} strokeWidth={2.5} />
+                </button>
               </div>
-            )}
-          </div>
 
-          {/* Stock Status */}
-          <div className="flex items-center gap-2 mb-6">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
-            </span>
-            <span className="text-sm font-medium text-green-600">In Stock</span>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-gray-100 mb-6" />
-
-          {/* Description */}
-          <p className="text-text-secondary text-base leading-relaxed mb-6">
-            {shortDescription || product.description}
-          </p>
-
-          {/* Features — card grid */}
-          {features.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-base font-semibold text-text-primary mb-3">Key Features</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {features.map((feat) => (
-                  <div
-                    key={feat}
-                    className="flex items-start gap-2.5 bg-gray-50 rounded-lg px-3.5 py-3 text-sm text-text-secondary"
-                  >
-                    <CheckCircle2 size={16} className="text-purple-mid mt-0.5 flex-shrink-0" />
-                    <span>{feat}</span>
-                  </div>
-                ))}
+              <div className="flex w-full gap-3">
+                <button
+                  onClick={() => addToCart(productId, qty)}
+                  className="flex-1 bg-[#111111] text-white hover:bg-[#333333] h-[46px] rounded text-xs tracking-widest uppercase font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                >
+                  <ShoppingCart size={16} /> Add To Cart
+                </button>
+                <button
+                  onClick={() => {
+                    addToCart(productId, qty);
+                    router.push(`/cart?checkout=true&buyNowId=${productId}`);
+                  }}
+                  className="flex-1 border-2 border-[#c4a265] text-[#c4a265] hover:bg-white/60 h-[46px] rounded text-xs tracking-widest uppercase font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                >
+                  <Zap size={14} /> Buy Now
+                </button>
               </div>
             </div>
-          )}
-
-          {/* Divider */}
-          <div className="border-t border-gray-100 mb-6" />
-
-          {/* Quantity */}
-          <div className="flex items-center gap-5 mb-5">
-            <span className="text-sm font-semibold text-text-primary">Quantity</span>
-            <div className="flex items-center bg-gray-50 rounded-lg">
-              <button
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="w-11 h-11 flex items-center justify-center text-text-secondary hover:text-purple-mid transition-colors rounded-l-lg hover:bg-gray-100"
-              >
-                <Minus size={16} />
-              </button>
-              <span className="w-12 text-center text-sm font-semibold select-none">{qty}</span>
-              <button
-                onClick={() => setQty((q) => q + 1)}
-                className="w-11 h-11 flex items-center justify-center text-text-secondary hover:text-purple-mid transition-colors rounded-r-lg hover:bg-gray-100"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-col gap-3">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => addToCart(productId, qty)}
-              className="w-full bg-black hover:bg-black/85 py-4 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2"
-            >
-              <ShoppingCart size={18} className="text-[#C4A265]" />
-              <span className="bg-gradient-to-r from-[#C4A265] via-[#D4B978] to-[#C4A265] bg-clip-text text-transparent">
-                Add to Cart — Tk {formatPrice(salePrice * qty)}
-              </span>
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                addToCart(productId, qty);
-                router.push(`/cart?checkout=true&buyNowId=${productId}`);
-              }}
-              className="w-full border-2 border-[#C4A265] text-[#C4A265] hover:bg-white/60 py-3.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2"
-            >
-              <Zap size={16} />
-              Buy Now
-            </motion.button>
           </div>
         </div>
-      </div>
 
-      {/* Description / Specifications Tabs */}
-      <div className="mt-14">
-        <div className="border-b border-gray-200">
-          <div className="flex gap-8">
-            {["description", "specifications"].map((tab) => (
+        {/* Tabs section from 2nd screenshot */}
+        <div className="mt-16">
+          <div className="flex gap-3 mb-6">
+            {["specification", "description"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`pb-3 text-sm font-semibold capitalize transition-colors relative ${activeTab === tab
-                  ? "text-purple-dark"
-                  : "text-text-muted hover:text-text-secondary"
+                className={`px-8 py-2.5 text-[13px] font-bold tracking-wide rounded border transition-all capitalize ${activeTab === tab
+                  ? "bg-[#fcfaf8] text-gray-800 border-gray-300 shadow-sm"
+                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700"
                   }`}
               >
                 {tab}
-                {activeTab === tab && (
-                  <motion.div
-                    layoutId="tab-underline"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-mid rounded-full"
-                  />
-                )}
               </button>
             ))}
           </div>
-        </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25 }}
-            className="bg-white rounded-b-xl border border-t-0 border-gray-100 shadow-sm"
-          >
-            {activeTab === "description" ? (
-              <div className="p-6 sm:p-8">
-                <h3 className="text-lg font-bold text-text-primary mb-5">
-                  {brandName || product.brand} {product.name}
-                </h3>
-                <div className="space-y-4">
-                  {descriptionParagraphs.map((para, i) => (
-                    <p key={i} className="text-text-secondary text-[15px] leading-relaxed">
-                      {para}
-                    </p>
-                  ))}
-                </div>
-                {/* Custom Fields */}
-                {customFields.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-gray-100">
-                    <h4 className="text-base font-semibold text-text-primary mb-4">Product Details</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {customFields.map(([key, value]) => (
-                        <div
-                          key={key}
-                          className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100"
-                        >
-                          <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">
-                            {key}
-                          </p>
-                          <p className="text-sm font-normal text-text-primary">{String(value)}</p>
+          <div className="min-h-[300px]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {activeTab === "description" ? (
+                  <div className="text-gray-600 text-[14px] leading-relaxed space-y-4 max-w-4xl p-6 bg-[#fcfaf8] rounded-md border border-gray-100">
+                    {descriptionParagraphs.map((para, i) => (
+                      <p key={i}>{para}</p>
+                    ))}
+                    {customFields.length > 0 && (
+                      <div className="mt-8 pt-6 border-t border-gray-100">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {customFields.map(([key, value]) => (
+                            <div key={key} className="bg-white rounded px-4 py-3 border border-gray-100 shadow-sm">
+                              <p className="text-[11px] font-bold text-gray-400 tracking-wider uppercase mb-1">{key}</p>
+                              <p className="text-sm font-medium text-gray-800">{String(value)}</p>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-w-[100%] xl:max-w-6xl">
+                    {/* Specifications Accordion Style */}
+                    <div className="flex flex-col text-[13px]">
+                      {Object.keys(specifications).length > 0 ? (
+                        <>
+                          {Object.entries(specifications).map(([key, value], i) => (
+                            <div key={key} className={`flex border-b border-white last:mb-2 py-4 px-6 items-center hover:bg-gray-50 transition-colors ${i % 2 === 0 ? "bg-[#f5ebd7]" : "bg-[#fcfaf8]"}`}>
+                              <div className="w-1/3 text-[11px] font-bold text-gray-700 tracking-wider uppercase pr-4">{key}</div>
+                              <div className="w-2/3 text-[13px] text-gray-600 font-medium border-l border-gray-200/60 pl-6 h-full flex items-center">
+                                {typeof value === 'object' ? JSON.stringify(value) : value}
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <div className="py-12 bg-[#fcfaf8] rounded text-center text-sm text-gray-500 border border-gray-100">No specifications found.</div>
+                      )}
                     </div>
                   </div>
                 )}
-              </div>
-            ) : (
-              <div className="overflow-hidden">
-                <table className="w-full">
-                  <tbody>
-                    {Object.entries(specifications).map(([key, value], i) => (
-                      <tr
-                        key={key}
-                        className={`border-b border-gray-100 last:border-b-0 ${i % 2 === 0 ? "bg-gray-50/70" : "bg-white"
-                          }`}
-                      >
-                        <td className="px-6 py-4 text-sm font-semibold text-text-primary w-2/5 border-r border-gray-100">
-                          {key}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-text-secondary">
-                          {typeof value === "object" ? JSON.stringify(value) : value}
-                        </td>
-                      </tr>
-                    ))}
-                    {Object.keys(specifications).length === 0 && (
-                      <tr>
-                        <td colSpan={2} className="px-6 py-8 text-sm text-text-muted text-center">
-                          No specifications available
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Related Products */}
-      {relatedProducts.length > 0 && (
-        <div className="mt-10 mb-8">
-          <h2 className="text-2xl md:text-3xl font-semibold text-text-primary mb-8">Related Products</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-            {relatedProducts.map((rp, i) => {
-              const rpId = String(rp._id || rp.id);
-              const rpBrand = rp.customFields?.brand || rp.category || rp.brand || "";
-              const rpImage =
-                rp.images && rp.images.length > 0
-                  ? rp.images[0].url
-                  : rp.image || "/placeholder.png";
-              // Correct DB schema: price = regular, discount = sale price
-              const rpRegular = rp.price || 0;
-              const rpSale =
-                rp.discount && rp.discount > 0 && rp.discount < rpRegular
-                  ? rp.discount
-                  : rpRegular;
-              const rpSaved = rpRegular - rpSale;
-
-              return (
-                <motion.div
-                  key={rpId}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: i * 0.05 }}
-                  whileHover={{ y: -5 }}
-                  className="bg-white rounded-xl overflow-hidden group hover:shadow-md transition-shadow duration-300"
-                >
-                  <Link href={`/product/${rpId}`}>
-                    <div className="relative h-36 sm:h-44 lg:h-56 bg-offwhite overflow-hidden">
-                      {rp.badge && (
-                        <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-purple-soft text-purple-mid text-[9px] sm:text-[10px] font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full z-10">
-                          {rp.badge}
-                        </span>
-                      )}
-                      {rpSaved > 0 && (
-                        <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-green-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full z-10">
-                          Save Tk {formatPrice(rpSaved)}
-                        </span>
-                      )}
-                      <Image
-                        src={rpImage}
-                        alt={rp.name}
-                        fill
-                        className="object-contain group-hover:scale-105 transition-transform duration-500"
-                        sizes="(max-width: 768px) 50vw, 25vw"
-                      />
-                    </div>
-                    <div className="p-2.5 sm:p-4">
-                      <p className="text-[10px] sm:text-[11px] text-text-muted font-semibold uppercase tracking-wider mb-0.5 sm:mb-1">
-                        {rpBrand}
-                      </p>
-                      <h3 className="text-xs sm:text-sm font-normal text-text-primary/85 mb-2 sm:mb-3 leading-snug line-clamp-2 group-hover:text-purple-mid transition-colors">
-                        {rp.name}
-                      </h3>
-                      <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
-                        <span className="text-sm sm:text-lg font-semibold text-text-primary">
-                          Tk {formatPrice(rpSale)}
-                        </span>
-                        {rpSaved > 0 && (
-                          <span className="text-[10px] sm:text-xs text-text-muted line-through">
-                            Tk {formatPrice(rpRegular)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              );
-            })}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
-      )}
+
+        {/* Related Products */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-20 mb-10">
+            <h2 className="text-xl font-bold text-[#111111] tracking-wide mb-8 border-b-2 border-black inline-block pb-2 uppercase">Related Products</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {relatedProducts.map((rp, i) => (
+                <ProductCard key={String(rp._id || rp.id)} product={rp} index={i} />
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
 
       {/* Mobile Sticky Add to Cart Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex items-center gap-3 z-50 lg:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
@@ -469,7 +339,7 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
         </div>
         <button
           onClick={() => addToCart(productId, qty)}
-          className="bg-purple-dark hover:bg-purple-mid text-white text-sm font-semibold px-6 py-3 rounded-xl transition-colors flex items-center gap-2 flex-shrink-0"
+          className="bg-[#111111] hover:bg-[#333333] text-white text-sm font-semibold px-6 py-3 rounded-xl transition-colors flex items-center gap-2 flex-shrink-0"
         >
           <ShoppingCart size={16} />
           Add to Cart
