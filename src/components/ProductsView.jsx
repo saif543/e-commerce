@@ -270,27 +270,28 @@ export default function ProductsView() {
     return (
         <>
         {/* Category Hero Banner */}
-        <div className="relative w-full h-40 min-[480px]:h-48 min-[640px]:h-56 min-[768px]:h-64 min-[1024px]:h-72 overflow-hidden bg-black">
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent z-10" />
-            <div className="absolute inset-0 bg-[url('/category-hero.jpg')] bg-cover bg-center opacity-40" />
-            <div className="relative z-20 h-full max-w-[1440px] mx-auto px-4 min-[480px]:px-6 min-[768px]:px-8 flex flex-col justify-center">
-                {/* Breadcrumb */}
-                <div className="flex items-center gap-1.5 min-[480px]:gap-2 text-[10px] min-[480px]:text-xs min-[768px]:text-sm text-white/60 mb-2 min-[480px]:mb-3 min-[768px]:mb-4">
-                    <Link href="/" className="hover:text-white transition-colors">Home</Link>
-                    <ChevronRight size={12} className="min-[768px]:w-[14px] min-[768px]:h-[14px]" />
-                    {categoryParam && subcategoryParam ? (
-                        <>
-                            <Link href={`/products?category=${encodeURIComponent(categoryParam)}`} className="hover:text-white transition-colors">{categoryParam}</Link>
-                            <ChevronRight size={12} className="min-[768px]:w-[14px] min-[768px]:h-[14px]" />
-                            <span className="text-white font-medium">{subcategoryParam}</span>
-                        </>
-                    ) : (
-                        <span className="text-white font-medium">{pageTitle}</span>
-                    )}
-                </div>
-                <h1 className="text-xl min-[480px]:text-2xl min-[768px]:text-3xl min-[1024px]:text-4xl font-semibold text-white mb-1 min-[480px]:mb-2">{pageTitle}</h1>
-                <p className="text-white/60 text-[10px] min-[480px]:text-xs min-[768px]:text-sm min-[1024px]:text-base max-w-lg">{pageDescription}</p>
+        <div className="relative w-full h-24 min-[480px]:h-28 min-[640px]:h-32 min-[768px]:h-36 min-[1024px]:h-40 overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d1f3d 40%, #B8860B 100%)" }}
+        />
+
+        {/* Heading below banner */}
+        <div className="max-w-[1440px] mx-auto px-4 min-[480px]:px-6 min-[768px]:px-8 pt-5 min-[480px]:pt-6 min-[768px]:pt-8">
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-1.5 min-[480px]:gap-2 text-[10px] min-[480px]:text-xs min-[768px]:text-sm text-text-muted mb-2 min-[480px]:mb-3">
+                <Link href="/" className="hover:text-text-primary transition-colors">Home</Link>
+                <ChevronRight size={12} className="min-[768px]:w-[14px] min-[768px]:h-[14px]" />
+                {categoryParam && subcategoryParam ? (
+                    <>
+                        <Link href={`/products?category=${encodeURIComponent(categoryParam)}`} className="hover:text-text-primary transition-colors">{categoryParam}</Link>
+                        <ChevronRight size={12} className="min-[768px]:w-[14px] min-[768px]:h-[14px]" />
+                        <span className="text-text-primary font-medium">{subcategoryParam}</span>
+                    </>
+                ) : (
+                    <span className="text-text-primary font-medium">{pageTitle}</span>
+                )}
             </div>
+            <h1 className="text-xl min-[480px]:text-2xl min-[768px]:text-3xl font-semibold text-text-primary mb-1">{pageTitle}</h1>
+            <p className="text-text-secondary text-[10px] min-[480px]:text-xs min-[768px]:text-sm max-w-lg">{pageDescription}</p>
         </div>
 
         <section className="max-w-[1440px] mx-auto px-2 min-[480px]:px-4 min-[640px]:px-5 min-[768px]:px-6 py-6 min-[768px]:py-8">
