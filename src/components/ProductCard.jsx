@@ -41,12 +41,12 @@ export default function ProductCard({ product, index = 0 }) {
         {/* Image */}
         <div className="relative h-36 sm:h-44 lg:h-56 bg-offwhite overflow-hidden">
           {product.badge && (
-            <span className="absolute top-1.5 left-1.5 min-[480px]:top-2 min-[480px]:left-2 min-[768px]:top-3 min-[768px]:left-3 bg-purple-soft text-purple-mid text-[8px] min-[480px]:text-[9px] min-[768px]:text-[10px] font-semibold px-1.5 min-[480px]:px-2 min-[768px]:px-3 py-0.5 min-[768px]:py-1 rounded-full z-10">
+            <span className="absolute top-1.5 left-1.5 min-[480px]:top-2 min-[480px]:left-2 min-[768px]:top-3 min-[768px]:left-3 bg-purple-soft text-purple-mid text-[10px] min-[480px]:text-[10px] min-[768px]:text-[10px] font-semibold px-2 min-[480px]:px-2 min-[768px]:px-3 py-0.5 min-[768px]:py-1 rounded-full z-10">
               {product.badge}
             </span>
           )}
           {savedAmount > 0 && (
-            <span className="absolute top-1.5 right-1.5 min-[480px]:top-2 min-[480px]:right-2 min-[768px]:top-3 min-[768px]:right-3 bg-green-600 text-white text-[8px] min-[480px]:text-[9px] min-[768px]:text-[10px] font-bold px-1 min-[480px]:px-1.5 min-[768px]:px-2.5 py-0.5 min-[768px]:py-1 rounded-full z-10">
+            <span className="absolute top-1.5 right-1.5 min-[480px]:top-2 min-[480px]:right-2 min-[768px]:top-3 min-[768px]:right-3 bg-green-600 text-white text-[10px] min-[480px]:text-[10px] min-[768px]:text-[10px] font-bold px-1.5 min-[480px]:px-1.5 min-[768px]:px-2.5 py-0.5 min-[768px]:py-1 rounded-full z-10">
               Save Tk {formatPrice(savedAmount)}
             </span>
           )}
@@ -60,25 +60,25 @@ export default function ProductCard({ product, index = 0 }) {
         </div>
 
         {/* Info */}
-        <div className="p-2 min-[480px]:p-3 min-[768px]:p-4 flex-1 flex flex-col">
-          <p className="text-[8px] min-[480px]:text-[9px] min-[768px]:text-[11px] text-text-muted font-semibold uppercase tracking-wider mb-0.5 truncate">{brandName}</p>
-          <h3 className="text-[10px] min-[480px]:text-[11px] min-[768px]:text-sm font-normal text-text-primary/85 mb-1 min-[480px]:mb-2 min-[768px]:mb-3 leading-snug line-clamp-2">
+        <div className="p-2 min-[480px]:p-3 min-[768px]:p-4 flex-1 flex flex-col text-center min-[480px]:text-left">
+          <p className="text-[10px] min-[480px]:text-[10px] min-[768px]:text-[11px] text-text-muted font-semibold uppercase tracking-wider mb-0.5 truncate">{brandName}</p>
+          <h3 className="text-xs min-[480px]:text-xs min-[768px]:text-sm font-medium min-[768px]:font-normal text-text-primary/85 mb-1 min-[480px]:mb-2 min-[768px]:mb-3 leading-snug line-clamp-2">
             {product.name}
           </h3>
           <div className="mt-auto">
             {isAvailable ? (
-              <div className="flex flex-wrap items-baseline gap-x-1 min-[480px]:gap-x-1.5 min-[768px]:gap-x-2 mb-1 min-[480px]:mb-2 min-[768px]:mb-3">
-                <span className="text-[11px] min-[480px]:text-sm min-[768px]:text-lg font-semibold text-text-primary whitespace-nowrap">
+              <div className="flex flex-wrap items-baseline justify-center min-[480px]:justify-start gap-x-1 min-[480px]:gap-x-1.5 min-[768px]:gap-x-2 mb-1 min-[480px]:mb-2 min-[768px]:mb-3">
+                <span className="text-sm min-[480px]:text-sm min-[768px]:text-lg font-bold min-[768px]:font-semibold text-text-primary whitespace-nowrap">
                   Tk {formatPrice(salePrice)}
                 </span>
                 {savedAmount > 0 && (
-                  <span className="text-[8px] min-[480px]:text-[9px] min-[768px]:text-xs text-text-muted line-through whitespace-nowrap">
+                  <span className="text-[10px] min-[480px]:text-[10px] min-[768px]:text-xs text-text-muted line-through whitespace-nowrap">
                     Tk {formatPrice(regularPrice)}
                   </span>
                 )}
               </div>
             ) : (
-              <span className="inline-block text-[8px] min-[480px]:text-[9px] min-[768px]:text-xs font-bold px-1.5 min-[768px]:px-3 py-0.5 min-[768px]:py-1.5 rounded-full mb-1 min-[768px]:mb-3 bg-red-100 text-red-600 whitespace-nowrap">
+              <span className="inline-block text-[10px] min-[480px]:text-[10px] min-[768px]:text-xs font-bold px-1.5 min-[768px]:px-3 py-0.5 min-[768px]:py-1.5 rounded-full mb-1 min-[768px]:mb-3 bg-red-100 text-red-600 whitespace-nowrap">
                 {product.stock === "out_of_stock" ? "Out of Stock" : product.stock}
               </span>
             )}
@@ -88,15 +88,15 @@ export default function ProductCard({ product, index = 0 }) {
       <div className="px-2 pb-2 min-[480px]:px-3 min-[480px]:pb-3 min-[768px]:px-4 min-[768px]:pb-4 mt-auto">
         {isAvailable ? (
           <div className="flex items-center gap-1 min-[480px]:gap-1.5 min-[768px]:gap-2">
-            <Link href={`/product/${productId}`} className="flex-1 border border-purple-mid text-purple-mid hover:bg-purple-soft text-[7px] min-[480px]:text-[9px] min-[768px]:text-xs font-semibold py-1.5 min-[480px]:py-2 min-[768px]:py-2.5 rounded min-[480px]:rounded-md transition-colors text-center whitespace-nowrap">
+            <Link href={`/product/${productId}`} className="flex-1 border border-purple-mid text-purple-mid hover:bg-purple-soft text-[10px] min-[480px]:text-[10px] min-[768px]:text-xs font-bold min-[768px]:font-semibold py-1.5 min-[480px]:py-2 min-[768px]:py-2.5 rounded min-[480px]:rounded-md transition-colors text-center whitespace-nowrap tracking-wide min-[768px]:tracking-normal">
               VIEW
             </Link>
-            <button onClick={() => addToCart(productId)} className="flex-1 bg-black hover:bg-black/85 text-[7px] min-[480px]:text-[9px] min-[768px]:text-xs font-semibold py-1.5 min-[480px]:py-2 min-[768px]:py-2.5 rounded min-[480px]:rounded-md transition-all whitespace-nowrap">
+            <button onClick={() => addToCart(productId)} className="flex-1 bg-black hover:bg-black/85 text-[10px] min-[480px]:text-[10px] min-[768px]:text-xs font-bold min-[768px]:font-semibold py-1.5 min-[480px]:py-2 min-[768px]:py-2.5 rounded min-[480px]:rounded-md transition-all whitespace-nowrap tracking-wide min-[768px]:tracking-normal">
               <span className="bg-gradient-to-r from-[#C4A265] via-[#D4B978] to-[#C4A265] bg-clip-text text-transparent">ADD TO CART</span>
             </button>
           </div>
         ) : (
-          <button className="w-full bg-gray-300 text-gray-500 text-[7px] min-[480px]:text-[9px] min-[768px]:text-xs font-semibold py-1.5 min-[480px]:py-2 min-[768px]:py-2.5 rounded min-[480px]:rounded-md cursor-not-allowed whitespace-nowrap" disabled>
+          <button className="w-full bg-gray-300 text-gray-500 text-[10px] min-[480px]:text-[10px] min-[768px]:text-xs font-bold min-[768px]:font-semibold py-1.5 min-[480px]:py-2 min-[768px]:py-2.5 rounded min-[480px]:rounded-md cursor-not-allowed whitespace-nowrap tracking-wide min-[768px]:tracking-normal" disabled>
             {product.stock === "out_of_stock" ? "Out of Stock" : product.stock}
           </button>
         )}
