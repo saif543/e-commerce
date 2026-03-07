@@ -3,6 +3,7 @@ import "./globals.css";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
+import MessengerChat from "@/components/MessengerChat";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -11,7 +12,7 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "Nishat Commerce - Shop the Best Deals",
+  title: "ZenTech - Shop the Best Deals",
   description: "Your one-stop shop for electronics, gadgets, and more",
 };
 
@@ -21,7 +22,10 @@ export default function RootLayout({ children }) {
       <body className={`${poppins.className} ${poppins.variable} antialiased pb-16 md:pb-0`}>
         <AuthProvider>
           <CartProvider>
-            <WishlistProvider>{children}</WishlistProvider>
+            <WishlistProvider>
+              {children}
+              <MessengerChat />
+            </WishlistProvider>
           </CartProvider>
         </AuthProvider>
       </body>

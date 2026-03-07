@@ -213,35 +213,53 @@ export default function ProductDetail({ product, relatedProducts = [] }) {
               )}
             </div>
 
-            {/* Add To Cart & Qty Row */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 mt-auto">
-              {/* Qty Counter */}
-              <div className="flex items-center bg-white border border-gray-300 rounded overflow-hidden h-[46px] w-full sm:w-[110px] flex-shrink-0 shadow-sm">
-                <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-1/3 sm:w-[38px] h-full flex items-center justify-center text-gray-500 hover:text-black hover:bg-gray-50 transition-colors">
-                  <Minus size={15} strokeWidth={2.5} />
-                </button>
-                <span className="w-1/3 sm:flex-1 text-center text-sm font-bold text-gray-800">{qty}</span>
-                <button onClick={() => setQty(q => q + 1)} className="w-1/3 sm:w-[38px] h-full flex items-center justify-center text-gray-500 hover:text-black hover:bg-gray-50 transition-colors">
-                  <Plus size={15} strokeWidth={2.5} />
+            {/* Qty + Actions */}
+            <div className="mt-auto space-y-3">
+              {/* Row 1: Qty + Add to Cart */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden h-[42px] w-[100px] flex-shrink-0 shadow-sm">
+                  <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-[34px] h-full flex items-center justify-center text-gray-500 hover:text-black hover:bg-gray-50 transition-colors">
+                    <Minus size={14} strokeWidth={2.5} />
+                  </button>
+                  <span className="flex-1 text-center text-sm font-bold text-gray-800">{qty}</span>
+                  <button onClick={() => setQty(q => q + 1)} className="w-[34px] h-full flex items-center justify-center text-gray-500 hover:text-black hover:bg-gray-50 transition-colors">
+                    <Plus size={14} strokeWidth={2.5} />
+                  </button>
+                </div>
+                <button
+                  onClick={() => addToCart(productId, qty)}
+                  className="flex-1 relative overflow-hidden bg-gradient-to-b from-[#2a2a2a] via-[#1a1a1a] to-[#0a0a0a] hover:from-[#333] hover:via-[#222] hover:to-[#111] h-[42px] rounded-lg text-xs tracking-widest uppercase font-bold flex items-center justify-center gap-2 transition-all active:translate-y-[1px] shadow-[0_2px_4px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] active:shadow-[0_0px_1px_rgba(0,0,0,0.4),inset_0_1px_3px_rgba(0,0,0,0.3)] border border-[rgba(196,162,101,0.2)]"
+                >
+                  <span className="absolute inset-x-0 top-0 h-[45%] bg-gradient-to-b from-white/10 to-transparent rounded-t pointer-events-none"></span>
+                  <ShoppingCart size={15} className="relative text-[#C4A265]" />
+                  <span className="relative bg-gradient-to-r from-[#C4A265] via-[#D4B978] to-[#C4A265] bg-clip-text text-transparent">Add To Cart</span>
                 </button>
               </div>
 
-              <div className="flex w-full gap-3">
-                <button
-                  onClick={() => addToCart(productId, qty)}
-                  className="flex-1 bg-[#111111] text-white hover:bg-[#333333] h-[46px] rounded text-xs tracking-widest uppercase font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
-                >
-                  <ShoppingCart size={16} /> Add To Cart
-                </button>
+              {/* Row 2: Buy Now + Messenger */}
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
                     addToCart(productId, qty);
                     router.push(`/cart?checkout=true&buyNowId=${productId}`);
                   }}
-                  className="flex-1 border-2 border-[#c4a265] text-[#c4a265] hover:bg-white/60 h-[46px] rounded text-xs tracking-widest uppercase font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                  className="flex-1 border-2 border-[#c4a265] text-[#c4a265] hover:bg-white/60 h-[42px] rounded-lg text-xs tracking-widest uppercase font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
                 >
                   <Zap size={14} /> Buy Now
                 </button>
+                <a
+                  href="https://m.me/61579377832787"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 relative overflow-hidden h-[42px] rounded-lg text-xs tracking-widest uppercase font-bold flex items-center justify-center gap-2 transition-all active:translate-y-[1px] active:shadow-[0_0px_1px_rgba(0,0,0,0.3),inset_0_1px_3px_rgba(0,0,0,0.2)] shadow-[0_3px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.25)] border border-[rgba(255,255,255,0.1)]"
+                  style={{ background: "linear-gradient(180deg, #0078FF 0%, #0060DD 50%, #004ABB 100%)" }}
+                >
+                  <span className="absolute inset-x-0 top-0 h-[45%] bg-gradient-to-b from-white/15 to-transparent rounded-t pointer-events-none"></span>
+                  <svg viewBox="0 0 24 24" fill="white" className="relative w-4 h-4">
+                    <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.2 5.42 3.15 7.2.16.15.26.36.27.58l.05 1.82c.02.56.6.93 1.11.7l2.04-.9c.17-.08.36-.1.55-.06.88.24 1.82.37 2.83.37 5.64 0 10-4.13 10-9.7S17.64 2 12 2zm6.28 7.58-3.07 4.87c-.49.78-1.54.98-2.29.43l-2.44-1.83a.75.75 0 00-.9 0l-3.3 2.5c-.44.33-1.01-.17-.72-.64l3.07-4.87c.49-.78 1.54-.98 2.29-.43l2.44 1.83a.75.75 0 00.9 0l3.3-2.5c.44-.33 1.01.17.72.64z"/>
+                  </svg>
+                  <span className="relative text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]">Messenger</span>
+                </a>
               </div>
             </div>
           </div>

@@ -4,14 +4,10 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mail,
-  Phone,
   ChevronDown,
-  Send,
   Package,
   RotateCcw,
-  CreditCard,
   Truck,
-  Shield,
   Headphones,
 } from "lucide-react";
 
@@ -69,24 +65,6 @@ const faqs = [
     ],
   },
   {
-    category: "Payments",
-    icon: CreditCard,
-    questions: [
-      {
-        q: "What payment methods do you accept?",
-        a: "We accept bKash, Nagad, Rocket, all major credit/debit cards (Visa, Mastercard), and cash on delivery for eligible orders.",
-      },
-      {
-        q: "Is my payment information secure?",
-        a: "Absolutely. We use industry-standard SSL encryption for all transactions. We never store your full card details on our servers.",
-      },
-      {
-        q: "Why was my payment declined?",
-        a: "Payments can be declined due to incorrect card details, insufficient funds, or bank restrictions. Please verify your details or contact your bank. You can also try an alternative payment method.",
-      },
-    ],
-  },
-  {
     category: "Shipping",
     icon: Truck,
     questions: [
@@ -120,19 +98,19 @@ const contactChannels = [
     renderIcon: <Mail size={20} />,
     label: "Email Support",
     description: "Send us a message anytime",
-    detail: "support@nishat.com.bd",
+    detail: "nisatkhan890@gmail.com",
     color: "bg-blue-50 text-blue-600",
     action: "Send Email",
-    href: "mailto:support@nishat.com.bd",
+    href: "mailto:nisatkhan890@gmail.com",
   },
   {
     renderIcon: <FacebookIcon />,
     label: "Facebook Page",
     description: "Visit and message our page",
-    detail: "facebook.com/NishatBD",
+    detail: "ZenTech",
     color: "bg-indigo-50 text-indigo-600",
     action: "Visit Page",
-    href: "https://facebook.com/NishatBD",
+    href: "https://m.me/profile.php?id=61579377832787",
   },
 ];
 
@@ -172,13 +150,6 @@ function FaqItem({ question, answer }) {
 
 export default function SupportPage() {
   const [activeCategory, setActiveCategory] = useState(0);
-  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
 
   return (
     <div className="max-w-[1440px] mx-auto px-6 py-12">
@@ -193,7 +164,7 @@ export default function SupportPage() {
           <Headphones size={13} />
           We're here to help
         </div>
-        <h1 className="font-serif text-3xl md:text-4xl text-text-primary mb-3">
+        <h1 className="text-3xl md:text-4xl font-semibold text-text-primary mb-3">
           Support Center
         </h1>
         <p className="text-text-secondary text-base max-w-xl mx-auto">
@@ -231,130 +202,43 @@ export default function SupportPage() {
         ))}
       </div>
 
-      {/* FAQ + Contact form */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
-        {/* FAQ */}
-        <div className="lg:col-span-3">
-          <h2 className="font-serif text-2xl text-text-primary mb-6">Frequently Asked Questions</h2>
+      {/* FAQ */}
+      <div className="max-w-3xl mx-auto">
+        <h2 className="text-2xl font-semibold text-text-primary mb-6 text-center">Frequently Asked Questions</h2>
 
-          {/* Category tabs */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {faqs.map((cat, i) => (
-              <button
-                key={cat.category}
-                onClick={() => setActiveCategory(i)}
-                className={`flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full border transition-colors ${
-                  activeCategory === i
-                    ? "bg-purple-dark text-white border-purple-dark"
-                    : "bg-white text-text-secondary border-gray-200 hover:border-purple-mid hover:text-purple-mid"
-                }`}
-              >
-                <cat.icon size={12} />
-                {cat.category}
-              </button>
-            ))}
-          </div>
-
-          {/* Questions */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeCategory}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-3"
+        {/* Category tabs */}
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          {faqs.map((cat, i) => (
+            <button
+              key={cat.category}
+              onClick={() => setActiveCategory(i)}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full border transition-colors ${
+                activeCategory === i
+                  ? "bg-purple-dark text-white border-purple-dark"
+                  : "bg-white text-text-secondary border-gray-200 hover:border-purple-mid hover:text-purple-mid"
+              }`}
             >
-              {faqs[activeCategory].questions.map((item) => (
-                <FaqItem key={item.q} question={item.q} answer={item.a} />
-              ))}
-            </motion.div>
-          </AnimatePresence>
+              <cat.icon size={12} />
+              {cat.category}
+            </button>
+          ))}
         </div>
 
-        {/* Contact form */}
-        <div className="lg:col-span-2">
-          <h2 className="font-serif text-2xl text-text-primary mb-6">Send a Message</h2>
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            {submitted ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center text-center py-8"
-              >
-                <div className="w-14 h-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-                  <Shield size={24} />
-                </div>
-                <p className="font-semibold text-text-primary mb-1">Message Sent!</p>
-                <p className="text-sm text-text-secondary">
-                  We'll get back to you within 24 hours.
-                </p>
-                <button
-                  onClick={() => { setSubmitted(false); setForm({ name: "", email: "", subject: "", message: "" }); }}
-                  className="mt-5 text-xs font-semibold text-purple-mid hover:text-purple-dark transition-colors underline underline-offset-2"
-                >
-                  Send another message
-                </button>
-              </motion.div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-text-secondary mb-1.5">Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      placeholder="Your name"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-purple-mid transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-text-secondary mb-1.5">Email</label>
-                    <input
-                      type="email"
-                      required
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      placeholder="your@email.com"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-purple-mid transition-colors"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1.5">Subject</label>
-                  <input
-                    type="text"
-                    required
-                    value={form.subject}
-                    onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                    placeholder="How can we help?"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-purple-mid transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1.5">Message</label>
-                  <textarea
-                    required
-                    rows={5}
-                    value={form.message}
-                    onChange={(e) => setForm({ ...form, message: e.target.value })}
-                    placeholder="Describe your issue or question..."
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-purple-mid transition-colors resize-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-purple-dark hover:bg-purple-mid text-white text-sm font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-                >
-                  <Send size={14} />
-                  Send Message
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
+        {/* Questions */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeCategory}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-3"
+          >
+            {faqs[activeCategory].questions.map((item) => (
+              <FaqItem key={item.q} question={item.q} answer={item.a} />
+            ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

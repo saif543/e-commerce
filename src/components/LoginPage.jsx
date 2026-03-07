@@ -101,10 +101,10 @@ export default function LoginPage() {
       >
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 mb-8 justify-center">
-          <div className="w-9 h-9 rounded-full bg-purple-dark flex items-center justify-center">
-            <span className="text-white font-bold text-sm">N</span>
+          <div className="w-9 h-9 rounded-full bg-black flex items-center justify-center">
+            <span className="text-[#C4A265] font-bold text-sm">Z</span>
           </div>
-          <span className="font-serif text-2xl tracking-tight text-purple-dark">Nishat</span>
+          <span className="font-serif text-2xl tracking-tight text-purple-dark">ZenTech</span>
         </Link>
 
         <h1 className="font-serif text-2xl text-text-primary text-center mb-2">
@@ -147,7 +147,7 @@ export default function LoginPage() {
         </p>
 
         <p className="text-[11px] text-text-muted text-center mt-5 leading-relaxed">
-          By continuing you agree to Nishat&apos;s{" "}
+          By continuing you agree to ZenTech&apos;s{" "}
           <span className="underline cursor-pointer hover:text-text-secondary">Terms of Service</span>{" "}
           and{" "}
           <span className="underline cursor-pointer hover:text-text-secondary">Privacy Policy</span>.

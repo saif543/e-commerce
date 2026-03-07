@@ -31,7 +31,7 @@ export default function RegisterPage() {
       if (result.success) {
         Swal.fire({
           icon: 'success',
-          title: 'Welcome to Nishat!',
+          title: 'Welcome to ZenTech!',
           text: 'Your account has been created successfully',
           timer: 1500,
           showConfirmButton: false,
@@ -98,17 +98,17 @@ export default function RegisterPage() {
       >
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 mb-8 justify-center">
-          <div className="w-9 h-9 rounded-full bg-purple-dark flex items-center justify-center">
-            <span className="text-white font-bold text-sm">N</span>
+          <div className="w-9 h-9 rounded-full bg-black flex items-center justify-center">
+            <span className="text-[#C4A265] font-bold text-sm">Z</span>
           </div>
-          <span className="font-serif text-2xl tracking-tight text-purple-dark">Nishat</span>
+          <span className="font-serif text-2xl tracking-tight text-purple-dark">ZenTech</span>
         </Link>
 
         <h1 className="font-serif text-2xl text-text-primary text-center mb-2">
           Create your account
         </h1>
         <p className="text-sm text-text-secondary text-center mb-8">
-          Join Nishat to start shopping the best electronics.
+          Join ZenTech to start shopping the best electronics.
         </p>
 
         {/* Google button */}
@@ -144,7 +144,7 @@ export default function RegisterPage() {
         </p>
 
         <p className="text-[11px] text-text-muted text-center mt-5 leading-relaxed">
-          By continuing you agree to Nishat&apos;s{" "}
+          By continuing you agree to ZenTech&apos;s{" "}
           <span className="underline cursor-pointer hover:text-text-secondary">Terms of Service</span>{" "}
           and{" "}
           <span className="underline cursor-pointer hover:text-text-secondary">Privacy Policy</span>.

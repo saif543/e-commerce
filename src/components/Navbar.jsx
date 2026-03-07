@@ -116,10 +116,10 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/">
             <motion.div whileHover={{ scale: 1.03 }} className="flex items-center gap-2.5 cursor-pointer">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${pathname === "/" ? "bg-purple-mid" : "bg-purple-dark"}`}>
-                <span className="text-white font-bold text-xs">N</span>
+              <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center">
+                <span className="text-[#C4A265] font-bold text-xs">Z</span>
               </div>
-              <span className={`font-serif text-xl tracking-tight transition-colors ${pathname === "/" ? "text-purple-mid" : "text-purple-dark"}`}>Nishat</span>
+              <span className={`text-xl tracking-tight transition-colors ${pathname === "/" ? "text-purple-mid" : "text-purple-dark"}`}>ZenTech</span>
             </motion.div>
           </Link>
 
@@ -238,7 +238,7 @@ export default function Navbar() {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-purple-mid rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                  <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white text-sm font-semibold">
                     {user.email?.[0]?.toUpperCase()}
                   </div>
                   <span className="text-sm font-semibold text-text-primary">
@@ -423,10 +423,10 @@ export default function Navbar() {
                   transition={{ duration: 0.15 }}
                 >
                   <Link href="/" className="flex items-center gap-2">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${pathname === "/" ? "bg-purple-mid" : "bg-purple-dark"}`}>
-                      <span className="text-white font-bold text-[10px]">N</span>
+                    <div className="w-7 h-7 rounded-full bg-black flex items-center justify-center">
+                      <span className="text-[#C4A265] font-bold text-[10px]">Z</span>
                     </div>
-                    <span className={`font-serif text-lg tracking-tight transition-colors ${pathname === "/" ? "text-purple-mid" : "text-purple-dark"}`}>Nishat</span>
+                    <span className={`text-lg tracking-tight transition-colors ${pathname === "/" ? "text-purple-mid" : "text-purple-dark"}`}>ZenTech</span>
                   </Link>
                 </motion.div>
               )}
@@ -472,10 +472,10 @@ export default function Navbar() {
               {/* Sidebar header */}
               <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
                 <Link href="/" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
-                  <div className="w-7 h-7 rounded-full bg-purple-dark flex items-center justify-center">
-                    <span className="text-white font-bold text-[10px]">N</span>
+                  <div className="w-7 h-7 rounded-full bg-black flex items-center justify-center">
+                    <span className="text-[#C4A265] font-bold text-[10px]">Z</span>
                   </div>
-                  <span className="font-serif text-lg text-purple-dark tracking-tight">Nishat</span>
+                  <span className="text-lg text-purple-dark tracking-tight">ZenTech</span>
                 </Link>
                 <button
                   onClick={() => setMobileMenuOpen(false)}
@@ -489,7 +489,7 @@ export default function Navbar() {
               {user && (
                 <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-purple-mid rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                    <div className="w-9 h-9 bg-black rounded-full flex items-center justify-center text-white text-sm font-semibold">
                       {user.email?.[0]?.toUpperCase()}
                     </div>
                     <div className="min-w-0">
@@ -633,7 +633,7 @@ export default function Navbar() {
                   className="flex flex-col items-center gap-0.5 px-3 py-1 relative"
                 >
                   <div className="relative">
-                    <div className="w-6 h-6 bg-purple-mid rounded-full flex items-center justify-center text-white text-[10px] font-semibold">
+                    <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center text-white text-[10px] font-semibold">
                       {user.email?.[0]?.toUpperCase()}
                     </div>
                   </div>

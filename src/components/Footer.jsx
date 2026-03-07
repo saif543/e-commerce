@@ -1,12 +1,24 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Facebook, Instagram, Twitter, Youtube } from "lucide-react";
 
 const footerLinks = {
-  Shop: ["Best Sellers", "New Arrivals", "Gift Cards", "Contact Us"],
-  Company: ["Our Story", "Sustainability", "Shipping Info", "Terms of Service"],
-  Support: ["FAQs", "Return Policy", "Privacy Policy", "Guarantees"],
+  Shop: [
+    { label: "All Products", href: "/products" },
+    { label: "Trending", href: "/trending" },
+    { label: "Brands", href: "/brands" },
+  ],
+  Account: [
+    { label: "Login", href: "/login" },
+    { label: "Register", href: "/register" },
+    { label: "Cart", href: "/cart" },
+  ],
+  Company: [
+    { label: "About Us", href: "/about" },
+    { label: "Support", href: "/support" },
+  ],
 };
 
 const socialIcons = [Facebook, Instagram, Twitter, Youtube];
@@ -19,10 +31,10 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 bg-purple-mid rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-xs">N</span>
+              <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+                <span className="text-[#C4A265] font-bold text-xs">Z</span>
               </div>
-              <span className="font-serif text-xl tracking-tight">Nishat</span>
+              <span className="text-xl font-semibold tracking-tight">ZenTech</span>
             </div>
             <p className="text-white/50 text-sm leading-relaxed mb-5 max-w-xs">
               Premium electronics for modern living. Quality products, curated with care for everyday use.
@@ -47,10 +59,10 @@ export default function Footer() {
               <h4 className="font-semibold text-sm mb-4">{title}</h4>
               <ul className="space-y-2.5">
                 {links.map((link) => (
-                  <li key={link}>
-                    <a href="#" className="text-white/50 text-sm hover:text-white transition-colors">
-                      {link}
-                    </a>
+                  <li key={link.label}>
+                    <Link href={link.href} className="text-white/50 text-sm hover:text-white transition-colors">
+                      {link.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -61,7 +73,7 @@ export default function Footer() {
         {/* Bottom */}
         <div className="border-t border-white/10 mt-12 pt-6 text-center">
           <p className="text-white/30 text-xs">
-            &copy; 2026 Nishat. All rights reserved.
+            &copy; 2026 ZenTech. All rights reserved.
           </p>
         </div>
       </div>

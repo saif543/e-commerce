@@ -49,7 +49,7 @@ const values = [
 
 const team = [
   {
-    name: "Nishat Rahman",
+    name: "ZenTech Rahman",
     role: "Founder & CEO",
     initials: "NR",
     color: "bg-purple-soft text-purple-dark",
@@ -72,7 +72,7 @@ const team = [
 ];
 
 const timeline = [
-  { year: "2019", event: "Nishat founded with 50 products and a small Dhaka warehouse." },
+  { year: "2019", event: "ZenTech founded with 50 products and a small Dhaka warehouse." },
   { year: "2020", event: "Launched our online store and reached 5,000 customers nationwide." },
   { year: "2022", event: "Partnered with 40+ global brands including Apple, Samsung & Sony." },
   { year: "2023", event: "Opened our flagship experience centre in Dhaka." },
@@ -99,7 +99,7 @@ export default function AboutPage() {
           Bangladesh's most trusted <span className="text-purple-mid">electronics</span> store
         </h1>
         <p className="text-text-secondary text-base leading-relaxed">
-          Founded in 2019, Nishat set out with one mission — bring genuine, premium electronics to
+          Founded in 2019, ZenTech set out with one mission — bring genuine, premium electronics to
           every corner of Bangladesh at fair prices, backed by service you can count on.
         </p>
       </motion.div>
@@ -130,7 +130,7 @@ export default function AboutPage() {
           </h2>
           <p className="text-text-secondary leading-relaxed mb-4">
             We believe everyone deserves access to quality electronics without the fear of fake
-            products, inflated prices, or poor after-sales support. Nishat was built to change that.
+            products, inflated prices, or poor after-sales support. ZenTech was built to change that.
           </p>
           <p className="text-text-secondary leading-relaxed mb-6">
             From a student's first pair of earbuds to a professional's workstation setup — we've
@@ -193,7 +193,7 @@ export default function AboutPage() {
       {/* Team */}
       <motion.div {...fadeUp(0.1)}>
         <div className="text-center mb-10">
-          <p className="text-xs font-semibold text-purple-mid uppercase tracking-widest mb-2">The People Behind Nishat</p>
+          <p className="text-xs font-semibold text-purple-mid uppercase tracking-widest mb-2">The People Behind ZenTech</p>
           <h2 className="font-serif text-3xl text-text-primary">Meet the Team</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
@@ -222,9 +222,14 @@ export default function AboutPage() {
         className="bg-purple-dark rounded-3xl px-8 py-14 text-center text-white"
       >
         <h2 className="font-serif text-3xl md:text-4xl mb-4">Ready to shop with confidence?</h2>
-        <p className="text-purple-muted text-sm mb-8 max-w-md mx-auto">
+        <p className="text-purple-muted text-sm mb-4 max-w-md mx-auto">
           Thousands of genuine products, fast delivery, and a team that's always here for you.
         </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-purple-muted mb-8">
+          <a href="mailto:nisatkhan890@gmail.com" className="hover:text-white transition-colors">nisatkhan890@gmail.com</a>
+          <span className="hidden sm:inline">|</span>
+          <a href="https://m.me/profile.php?id=61579377832787" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Message us on Facebook</a>
+        </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/"

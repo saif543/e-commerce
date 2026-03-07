@@ -15,7 +15,7 @@ import ProductCard from "./ProductCard";
   2xl  1280+    → 5 cols
 */
 
-export default function Products({ title = "Most Loved Products", subtitle = "Discover our top picks for a premium lifestyle", apiUrl = "/api/product?limit=12", bg = "bg-cream/50" }) {
+export default function Products({ title = "Most Loved Products", subtitle = "Discover our top picks for a premium lifestyle", apiUrl = "/api/product?limit=12", bg = "bg-cream/50", bannerImage = null, bannerGradient = null }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,6 +29,25 @@ export default function Products({ title = "Most Loved Products", subtitle = "Di
 
   return (
     <section className={bg}>
+      {/* Thin Banner */}
+      {(bannerImage || bannerGradient) && (
+        <div className="max-w-[1440px] mx-auto px-2 min-[480px]:px-4 min-[640px]:px-5 min-[768px]:px-6 pt-8 min-[768px]:pt-16">
+          <div
+            className="relative w-full h-24 min-[480px]:h-28 min-[640px]:h-32 min-[768px]:h-36 min-[1024px]:h-40 rounded-xl min-[480px]:rounded-2xl overflow-hidden"
+            style={bannerGradient && !bannerImage ? { background: bannerGradient } : undefined}
+          >
+            {bannerImage && <img src={bannerImage} alt={title} className="w-full h-full object-cover" />}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent" />
+            <div className="absolute inset-0 flex items-center px-4 min-[480px]:px-6 min-[768px]:px-10 z-10">
+              <div>
+                <h3 className="text-white text-sm min-[480px]:text-base min-[768px]:text-xl min-[1024px]:text-2xl font-semibold drop-shadow-md">{title}</h3>
+                <p className="text-white/70 text-[9px] min-[480px]:text-[10px] min-[768px]:text-xs min-[1024px]:text-sm mt-0.5 min-[480px]:mt-1 drop-shadow-sm">{subtitle}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-[1440px] mx-auto px-2 min-[480px]:px-4 min-[640px]:px-5 min-[768px]:px-6 py-8 min-[768px]:py-16">
         {/* Header */}
         <motion.div

@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import ProductsView from "@/components/ProductsView";
 
 export const metadata = {
-    title: "Products - Nishat",
+    title: "Products - ZenTech",
     description: "Browse our collection of premium products",
 };
 

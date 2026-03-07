@@ -7,7 +7,7 @@ const reviews = [
   {
     name: "Emily R.",
     role: "Verified Buyer",
-    text: "I love everything I've ordered from Nishat. The quality is excellent and I feel good knowing my purchases are worth every penny.",
+    text: "I love everything I've ordered from ZenTech. The quality is excellent and I feel good knowing my purchases are worth every penny.",
   },
   {
     name: "Sarah K.",
